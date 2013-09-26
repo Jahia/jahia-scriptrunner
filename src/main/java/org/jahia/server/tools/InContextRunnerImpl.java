@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -22,9 +23,11 @@ public class InContextRunnerImpl implements InContextRunner {
     DatabaseConfiguration databaseConfiguration;
     Connection connection;
     File jahiaInstallLocationFile;
+    ClassLoader classLoader;
 
-    public boolean run(File jahiaInstallLocationFile) {
+    public boolean run(File jahiaInstallLocationFile, ClassLoader classLoader) {
         this.jahiaInstallLocationFile = jahiaInstallLocationFile;
+        this.classLoader = classLoader;
         initialize();
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
@@ -62,12 +65,18 @@ public class InContextRunnerImpl implements InContextRunner {
 
     public void getJDBCConnection(DatabaseConfiguration databaseConfiguration) {
         try {
-            Class.forName(databaseConfiguration.getDriverName());
+            Driver driver = (Driver) Class.forName(databaseConfiguration.getDriverName(), true, classLoader).newInstance();
+            DriverManager.registerDriver(new DelegatingDriver(driver)); // register using the Delegating Driver
+
             connection = DriverManager.getConnection(databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
         } catch (ClassNotFoundException e) {
-            logger.error("Error loading database driver" + databaseConfiguration.getDriverName(), e);
+            logger.error("Error loading database driver " + databaseConfiguration.getDriverName(), e);
         } catch (SQLException e) {
             logger.error("Error connecting to the database", e);
+        } catch (InstantiationException e) {
+            logger.error("Error loading database driver" + databaseConfiguration.getDriverName(), e);
+        } catch (IllegalAccessException e) {
+            logger.error("Error loading database driver" + databaseConfiguration.getDriverName(), e);
         }
     }
 

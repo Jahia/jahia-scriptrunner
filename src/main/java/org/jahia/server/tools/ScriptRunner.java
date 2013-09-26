@@ -99,7 +99,7 @@ public class ScriptRunner {
             URLClassLoader urlClassLoader = new URLClassLoader(jahiaClassLoaderURLs.toArray(new URL[jahiaClassLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
             Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.InContextRunnerImpl");
             InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
-            inContextRunner.run(jahiaInstallLocationFile);
+            inContextRunner.run(jahiaInstallLocationFile, urlClassLoader);
 
         } catch (ParseException exp) {
             // oops, something went wrong
