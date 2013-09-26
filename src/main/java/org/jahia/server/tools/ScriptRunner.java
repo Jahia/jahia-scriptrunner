@@ -50,7 +50,7 @@ public class ScriptRunner {
             if (lineArgs.length < 1) {
                 // automatically generate the help statement
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp( "cluster-tools [options] project_directory [command]", options );
+                formatter.printHelp( "jahia-scriptrunner [options] project_directory [command]", options );
                 return;
             }
 
