@@ -47,7 +47,7 @@ public class ScriptRunner {
             Options options = buildOptions();
             CommandLine line = parser.parse(options, args);
             String[] lineArgs = line.getArgs();
-            if (lineArgs.length < 1) {
+            if (line.hasOption("h")) {
                 // automatically generate the help statement
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp( "jahia-scriptrunner [options] project_directory [command]", options );
