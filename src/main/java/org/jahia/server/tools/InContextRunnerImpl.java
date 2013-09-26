@@ -7,6 +7,9 @@ import org.jdom.xpath.XPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -25,11 +28,30 @@ public class InContextRunnerImpl implements InContextRunner {
     File jahiaInstallLocationFile;
     ClassLoader classLoader;
 
-    public boolean run(File jahiaInstallLocationFile, ClassLoader classLoader) {
+    public boolean run(File jahiaInstallLocationFile, File scriptFile, ClassLoader classLoader) {
         this.jahiaInstallLocationFile = jahiaInstallLocationFile;
         this.classLoader = classLoader;
         initialize();
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+
+        // create a script engine manager
+        ScriptEngineManager factory = new ScriptEngineManager();
+        int lastDotPos = scriptFile.getName().lastIndexOf(".");
+        String extension = null;
+        if (lastDotPos > -1) {
+            extension = scriptFile.getName().substring(lastDotPos+1);
+        }
+        ScriptEngine engine = factory.getEngineByExtension(extension);
+        try {
+            engine.eval(new FileReader(scriptFile));
+        } catch (ScriptException e) {
+            logger.error("Error executing script " + scriptFile, e);
+            return false;
+        } catch (FileNotFoundException e) {
+            logger.error("Error executing script " + scriptFile, e);
+            return false;
+        }
+
+        return true;
     }
 
     public void initialize() {

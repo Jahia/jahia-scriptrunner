@@ -67,9 +67,9 @@ public class ScriptRunner {
             }
 
             String command = null;
-            if (lineArgs.length >= 2) {
+            if (lineArgs.length >= 1) {
                 StringBuffer commandBuffer = new StringBuffer();
-                for (int i=1; i<lineArgs.length; i++) {
+                for (int i=0; i<lineArgs.length; i++) {
                     commandBuffer.append(lineArgs[i]);
                 }
                 command = commandBuffer.toString();
@@ -77,6 +77,7 @@ public class ScriptRunner {
                     command = null;
                 }
             }
+            File scriptFile = new File(command);
 
             List<URL> jahiaClassLoaderURLs = new ArrayList<URL>();
 
@@ -99,7 +100,7 @@ public class ScriptRunner {
             URLClassLoader urlClassLoader = new URLClassLoader(jahiaClassLoaderURLs.toArray(new URL[jahiaClassLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
             Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.InContextRunnerImpl");
             InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
-            inContextRunner.run(jahiaInstallLocationFile, urlClassLoader);
+            inContextRunner.run(jahiaInstallLocationFile, scriptFile, urlClassLoader);
 
         } catch (ParseException exp) {
             // oops, something went wrong

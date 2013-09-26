@@ -7,6 +7,6 @@ import java.io.File;
  */
 public interface InContextRunner {
 
-    public boolean run(File jahiaInstallLocationFile, ClassLoader classLoader);
+    public boolean run(File jahiaInstallLocationFile, File scriptFile, ClassLoader classLoader);
 
 }
