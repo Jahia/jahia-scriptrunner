@@ -32,6 +32,8 @@ public class InContextRunnerImpl implements InContextRunner {
     public boolean run(File jahiaInstallLocationFile, File scriptFile, ClassLoader classLoader) {
         this.jahiaInstallLocationFile = jahiaInstallLocationFile;
         this.classLoader = classLoader;
+        ClassLoader previousContextClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(classLoader);
         initialize();
 
         // create a script engine manager
@@ -46,12 +48,15 @@ public class InContextRunnerImpl implements InContextRunner {
             engine.eval(new FileReader(scriptFile));
         } catch (ScriptException e) {
             logger.error("Error executing script " + scriptFile, e);
+            Thread.currentThread().setContextClassLoader(previousContextClassLoader);
             return false;
         } catch (FileNotFoundException e) {
+            Thread.currentThread().setContextClassLoader(previousContextClassLoader);
             logger.error("Error executing script " + scriptFile, e);
             return false;
         }
 
+        Thread.currentThread().setContextClassLoader(classLoader);
         return true;
     }
 
