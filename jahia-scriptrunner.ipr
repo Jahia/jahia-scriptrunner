@@ -31,12 +31,12 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="cli" target="1.7" />
-      <module name="common" target="1.7" />
-      <module name="engines" target="1.7" />
-      <module name="jahia-6.6" target="1.7" />
-      <module name="jahia-scriptrunner" target="1.7" />
-      <module name="jahia-scriptrunner-common" target="1.7" />
+      <module name="cli" target="1.6" />
+      <module name="common" target="1.6" />
+      <module name="engines" target="1.6" />
+      <module name="jahia-6.6" target="1.6" />
+      <module name="jahia-scriptrunner" target="1.6" />
+      <module name="jahia-scriptrunner-common" target="1.6" />
     </bytecodeTargetLevel>
   </component>
   <component name="CopyrightManager" default="">
