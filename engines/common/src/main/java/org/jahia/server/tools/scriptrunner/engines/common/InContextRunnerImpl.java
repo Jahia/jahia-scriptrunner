@@ -70,7 +70,7 @@ public class InContextRunnerImpl implements InContextRunner {
         SAXBuilder saxBuilder = new SAXBuilder();
         InputStreamReader fileReader = null;
         try {
-            fileReader = new InputStreamReader(new FileInputStream(new File(jahiaInstallLocationFile, "META-INF/context.xml")));
+            fileReader = new InputStreamReader(new FileInputStream(new File(jahiaInstallLocationFile, "META-INF"+File.separator+"context.xml")));
             org.jdom.Document jdomDocument = saxBuilder.build(fileReader);
             Element root = jdomDocument.getRootElement();
 

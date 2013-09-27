@@ -112,10 +112,10 @@ public class ScriptRunner {
             URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
             jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
 
-            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF/classes");
+            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF"+File.separator+"classes");
             jahiaClassLoaderURLs.add(classesDirectory.toURI().toURL());
 
-            File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF/lib");
+            File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF"+File.separator+"lib");
             File[] jarFiles = libDirectory.listFiles(new FilenameFilter() {
                 public boolean accept(File file, String name) {
                     if (name.toLowerCase().endsWith(".jar")) {
