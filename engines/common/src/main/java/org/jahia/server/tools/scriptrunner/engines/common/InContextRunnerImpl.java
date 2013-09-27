@@ -8,9 +8,7 @@ import org.jdom.xpath.XPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import javax.script.*;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -45,7 +43,11 @@ public class InContextRunnerImpl implements InContextRunner {
         }
         ScriptEngine engine = factory.getEngineByExtension(extension);
         try {
-            engine.eval(new FileReader(scriptFile));
+            Bindings bindings = new SimpleBindings();
+            bindings.put("jdbcConnection", connection);
+            bindings.put("jahiaInstallLocationFile", jahiaInstallLocationFile);
+            bindings.put("classLoader", classLoader);
+            engine.eval(new FileReader(scriptFile), bindings);
         } catch (ScriptException e) {
             logger.error("Error executing script " + scriptFile, e);
             Thread.currentThread().setContextClassLoader(previousContextClassLoader);
