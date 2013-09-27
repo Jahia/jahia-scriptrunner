@@ -1,4 +1,4 @@
-package org.jahia.server.tools;
+package org.jahia.server.tools.scriptrunner;
 
 /**
  */

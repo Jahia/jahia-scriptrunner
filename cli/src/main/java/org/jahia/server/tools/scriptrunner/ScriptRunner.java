@@ -1,4 +1,4 @@
-package org.jahia.server.tools;
+package org.jahia.server.tools.scriptrunner;
 
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
@@ -98,7 +98,7 @@ public class ScriptRunner {
             }
 
             URLClassLoader urlClassLoader = new URLClassLoader(jahiaClassLoaderURLs.toArray(new URL[jahiaClassLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
-            Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.InContextRunnerImpl");
+            Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.org.jahia.server.tools.scriptrunner.InContextRunnerImpl");
             InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
             inContextRunner.run(jahiaInstallLocationFile, scriptFile, urlClassLoader);
 

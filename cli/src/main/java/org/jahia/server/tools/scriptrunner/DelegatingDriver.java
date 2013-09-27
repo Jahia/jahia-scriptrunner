@@ -1,4 +1,4 @@
-package org.jahia.server.tools;
+package org.jahia.server.tools.scriptrunner;
 
 import java.sql.*;
 import java.util.Properties;
