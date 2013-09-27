@@ -96,7 +96,7 @@ public class InContextRunnerImpl implements InContextRunner {
     public void getJDBCConnection(DatabaseConfiguration databaseConfiguration) {
         try {
             Driver driver = (Driver) Class.forName(databaseConfiguration.getDriverName(), true, classLoader).newInstance();
-            DriverManager.registerDriver(new DelegatingDriver(driver)); // register using the Delegating Driver
+            DriverManager.registerDriver(driver);
 
             connection = DriverManager.getConnection(databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
             logger.info("Connection to database established using driver="+databaseConfiguration.getDriverName()+" url=" + databaseConfiguration.getConnectionURL() + " and user=" + databaseConfiguration.getUserName());
