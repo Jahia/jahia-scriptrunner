@@ -11,4 +11,22 @@
     <artifactId>jahia-scriptrunner-engines-jahia-6.6</artifactId>
     <name>Jahia Script Runner Engine for Jahia 6.6</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.server.tools.scriptrunner</groupId>
+            <artifactId>jahia-scriptrunner-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jahia.server.tools.scriptrunner</groupId>
+            <artifactId>jahia-scriptrunner-engines-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jahia.server</groupId>
+            <artifactId>jahia-impl</artifactId>
+            <version>6.6.0.0</version>
+        </dependency>
+    </dependencies>
+
 </project>
