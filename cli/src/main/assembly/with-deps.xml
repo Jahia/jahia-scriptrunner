@@ -10,16 +10,17 @@
   <dependencySets>
     <dependencySet>
       <excludes>
-          <exclude>org.jahia.server:jahia-scriptrunner-*:jar</exclude>
+          <exclude>org.jahia.server.tools.scriptrunner:jahia-scriptrunner-engines-*:jar</exclude>
       </excludes>
       <outputDirectory>/</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
       <unpack>true</unpack>
       <scope>runtime</scope>
     </dependencySet>
     <dependencySet>
         <includes>
-            <include>org.jahia.server:jahia-scriptrunner-*:jar</include>
+            <include>org.jahia.server.tools.scriptrunner:jahia-scriptrunner-engines-*:jar</include>
         </includes>
         <outputDirectory>/libs</outputDirectory>
         <useProjectArtifact>true</useProjectArtifact>

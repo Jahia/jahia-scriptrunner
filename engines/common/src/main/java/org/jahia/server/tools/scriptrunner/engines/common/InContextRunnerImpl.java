@@ -92,6 +92,7 @@ public class InContextRunnerImpl implements InContextRunner {
             DriverManager.registerDriver(new DelegatingDriver(driver)); // register using the Delegating Driver
 
             connection = DriverManager.getConnection(databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
+            logger.info("Connection to database established using driver="+databaseConfiguration.getDriverName()+" url=" + databaseConfiguration.getConnectionURL() + " and user=" + databaseConfiguration.getUserName());
         } catch (ClassNotFoundException e) {
             logger.error("Error loading database driver " + databaseConfiguration.getDriverName(), e);
         } catch (SQLException e) {

@@ -244,6 +244,17 @@
         <root url="jar://$MAVEN_REPOSITORY$/commons-cli/commons-cli/1.2/commons-cli-1.2-sources.jar!/" />
       </SOURCES>
     </library>
+    <library name="Maven: commons-io:commons-io:2.4">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.4/commons-io-2.4.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.4/commons-io-2.4-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.4/commons-io-2.4-sources.jar!/" />
+      </SOURCES>
+    </library>
     <library name="Maven: dom4j:dom4j:1.6.1">
       <CLASSES>
         <root url="jar://$MAVEN_REPOSITORY$/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar!/" />
@@ -286,6 +297,17 @@
       </JAVADOC>
       <SOURCES>
         <root url="jar://$MAVEN_REPOSITORY$/org/codehaus/groovy/groovy/2.1.7/groovy-2.1.7-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Maven: org.jahia.commons:jahia-commons:1.0.1">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/org/jahia/commons/jahia-commons/1.0.1/jahia-commons-1.0.1.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/org/jahia/commons/jahia-commons/1.0.1/jahia-commons-1.0.1-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/org/jahia/commons/jahia-commons/1.0.1/jahia-commons-1.0.1-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Maven: org.jdom:jdom:1.1">
