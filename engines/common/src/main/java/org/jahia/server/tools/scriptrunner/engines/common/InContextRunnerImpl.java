@@ -1,5 +1,6 @@
-package org.jahia.server.tools.scriptrunner;
+package org.jahia.server.tools.scriptrunner.engines.common;
 
+import org.jahia.server.tools.scriptrunner.common.InContextRunner;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;

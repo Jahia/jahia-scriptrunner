@@ -2,13 +2,62 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
-        <groupId>org.jahia.server</groupId>
-        <artifactId>jahia-scriptrunner-engines</artifactId>
+        <groupId>org.jahia.server.tools.scriptrunner</groupId>
+        <artifactId>jahia-scriptrunner-engines-root</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>jahia-scriptrunner-common-engine</artifactId>
-    <name>Jahia Script Runner Engine common classes</name>
+    <artifactId>jahia-scriptrunner-engines-common</artifactId>
+    <name>Jahia Script Runner Engine engine common classes</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.server.tools.scriptrunner</groupId>
+            <artifactId>jahia-scriptrunner-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jdom</groupId>
+            <artifactId>jdom</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1.1</version>
+            <exclusions>
+            	<exclusion>
+            		<groupId>jdom</groupId>
+                    <artifactId>jdom</artifactId>
+            	</exclusion>
+            	<exclusion>
+            		<artifactId>xml-apis</artifactId>
+            		<groupId>xml-apis</groupId>
+            	</exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>2.1.7</version>
+        </dependency>
+
+    </dependencies>
 
 </project>

@@ -1,4 +1,4 @@
-package org.jahia.server.tools.scriptrunner;
+package org.jahia.server.tools.scriptrunner.common;
 
 import java.io.File;
 

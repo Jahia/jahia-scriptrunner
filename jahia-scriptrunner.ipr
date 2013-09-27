@@ -27,6 +27,7 @@
         <module name="cli" />
         <module name="common" />
         <module name="jahia-6.6" />
+        <module name="jahia-scriptrunner-common" />
       </profile>
     </annotationProcessing>
   </component>
@@ -197,6 +198,7 @@
       <module fileurl="file://$PROJECT_DIR$/engines/engines.iml" filepath="$PROJECT_DIR$/engines/engines.iml" />
       <module fileurl="file://$PROJECT_DIR$/engines/jahia-6.6/jahia-6.6.iml" filepath="$PROJECT_DIR$/engines/jahia-6.6/jahia-6.6.iml" />
       <module fileurl="file://$PROJECT_DIR$/jahia-scriptrunner.iml" filepath="$PROJECT_DIR$/jahia-scriptrunner.iml" />
+      <module fileurl="file://$PROJECT_DIR$/common/jahia-scriptrunner-common.iml" filepath="$PROJECT_DIR$/common/jahia-scriptrunner-common.iml" />
     </modules>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.7" project-jdk-type="JavaSDK">

@@ -2,13 +2,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
-        <groupId>org.jahia.server</groupId>
-        <artifactId>jahia-scriptrunner-engines</artifactId>
+        <groupId>org.jahia.server.tools.scriptrunner</groupId>
+        <artifactId>jahia-scriptrunner-engines-root</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>jahia-scriptrunner-jahia-6.6-engine</artifactId>
-    <name>Jahia Script Runner Engine common classes</name>
+    <artifactId>jahia-scriptrunner-engines-jahia-6.6</artifactId>
+    <name>Jahia Script Runner Engine for Jahia 6.6</name>
 
 </project>

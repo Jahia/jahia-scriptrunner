@@ -9,10 +9,22 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
+      <excludes>
+          <exclude>org.jahia.server:jahia-scriptrunner-*:jar</exclude>
+      </excludes>
       <outputDirectory>/</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>true</unpack>
       <scope>runtime</scope>
+    </dependencySet>
+    <dependencySet>
+        <includes>
+            <include>org.jahia.server:jahia-scriptrunner-*:jar</include>
+        </includes>
+        <outputDirectory>/libs</outputDirectory>
+        <useProjectArtifact>true</useProjectArtifact>
+        <unpack>false</unpack>
+        <scope>runtime</scope>
     </dependencySet>
   </dependencySets>
 </assembly>
