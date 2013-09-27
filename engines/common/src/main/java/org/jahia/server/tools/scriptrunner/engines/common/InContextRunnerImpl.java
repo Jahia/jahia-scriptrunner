@@ -33,7 +33,17 @@ public class InContextRunnerImpl implements InContextRunner {
         ClassLoader previousContextClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
         initialize();
+        runScript(scriptFile);
+        Thread.currentThread().setContextClassLoader(classLoader);
+        return true;
+    }
 
+    public void initialize() {
+        loadDatabaseConfiguration();
+        getJDBCConnection(databaseConfiguration);
+    }
+
+    public void runScript(File scriptFile) {
         // create a script engine manager
         ScriptEngineManager factory = new ScriptEngineManager();
         int lastDotPos = scriptFile.getName().lastIndexOf(".");
@@ -50,24 +60,9 @@ public class InContextRunnerImpl implements InContextRunner {
             engine.eval(new FileReader(scriptFile), bindings);
         } catch (ScriptException e) {
             logger.error("Error executing script " + scriptFile, e);
-            Thread.currentThread().setContextClassLoader(previousContextClassLoader);
-            return false;
         } catch (FileNotFoundException e) {
-            Thread.currentThread().setContextClassLoader(previousContextClassLoader);
             logger.error("Error executing script " + scriptFile, e);
-            return false;
         }
-
-        Thread.currentThread().setContextClassLoader(classLoader);
-        return true;
-    }
-
-    public void initialize() {
-        loadDatabaseConfiguration();
-        getJDBCConnection(databaseConfiguration);
-    }
-
-    public void runScripts() {
 
     }
 
