@@ -79,6 +79,8 @@ public class InContextRunnerImpl implements InContextRunner {
                     resource.getAttributeValue("url"),
                     resource.getAttributeValue("username"),
                     resource.getAttributeValue("password"));
+
+            System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
         } catch (FileNotFoundException e) {
             logger.error("Error loading database configuration", e);
         } catch (JDOMException e) {

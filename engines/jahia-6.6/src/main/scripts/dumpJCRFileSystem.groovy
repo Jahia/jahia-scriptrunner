@@ -14,7 +14,7 @@ Connection connection = (Connection) jdbcConnection;
 
 logger.info("Dumping contents of table jr_fsg_fsentry...");
 
-PreparedStatement preparedStatement = connection.prepareStatement("SELECT FSENTRY_PATH, FSENTRY_NAME, FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH FROM jr_fsg_fsentry");
+PreparedStatement preparedStatement = connection.prepareStatement("SELECT FSENTRY_PATH, FSENTRY_NAME, FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH FROM JR_FSG_FSENTRY");
 
 ResultSet resultSet = preparedStatement.executeQuery();
 
