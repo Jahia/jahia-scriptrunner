@@ -42,7 +42,7 @@ How to use it
 
 Here a sample command line we will describe :
 
-./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
 
 In this example we launch the tool from the root directory of the tool's source code. The "-d"
  option allows you to specify in which directory it must look for all the librairies, classes and
