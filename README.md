@@ -33,9 +33,9 @@ supported) and create a connection to the database.
 Once all this is done it will then load and execute the Groovy script specified on the command line,
 passing it the following bound variables :
 
-jdbcConnection - a java.sql.Connection class that contains the active connection to the database
-jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
-classLoader - the ClassLoader used to load all the Jahia JARs and classes
+    jdbcConnection - a java.sql.Connection class that contains the active connection to the database
+    jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
+    classLoader - the ClassLoader used to load all the Jahia JARs and classes
 
 How to use it
 -------------
