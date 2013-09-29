@@ -44,6 +44,17 @@ passing it the following bound variables :
 How to use it
 -------------
 
+Command line format:
+
+    usage: jahia-scriptrunner [options] script_to_launch
+    -d,--installationDirectory <dir>     Jahia installation directory
+    -h,--help                            Prints this help screen
+    -l,--listScripts                     Outputs the list of built-in
+                                          available scripts for this Jahia
+                                          version
+    -x,--scriptOptions <scriptOptions>   A comma separated list of key=value
+                                          options to pass to the script
+
 Here a sample command line we will describe :
 
     ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -XdumpXml=true engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy

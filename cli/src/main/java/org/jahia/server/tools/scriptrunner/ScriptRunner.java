@@ -78,7 +78,7 @@ public class ScriptRunner {
             if (line.hasOption("h")) {
                 // automatically generate the help statement
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp("jahia-scriptrunner [options] project_directory [command]", options);
+                formatter.printHelp("jahia-scriptrunner [options] script_to_launch", options);
                 return;
             }
 
