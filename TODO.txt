@@ -1,2 +1,3 @@
-- Add real Jahia version check with fallback on major version (6.6.1.2 -> 6.6.1 -> 6.6)
+- Improve packaging to have an easy way to distribute the tool
+- Add real Jahia version check with fallback on major version (6.6.1.2 -> 6.6.1 -> 6.6), this will require re-using the code from the Update Manager common lib
 - Implement bundle manipulation script (requires implementating bundle serialization format which will take time)
