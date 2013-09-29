@@ -36,17 +36,24 @@ passing it the following bound variables :
     jdbcConnection - a java.sql.Connection class that contains the active connection to the database
     jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
     classLoader - the ClassLoader used to load all the Jahia JARs and classes
+    scriptOptions - a Properties object with all the options passed on the command line using the -X
+    parameter
+    databaseConfiguration - a org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
+    object that contains the database connection configuration (driver, url, username and password)
 
 How to use it
 -------------
 
 Here a sample command line we will describe :
 
-    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -XdumpXml=true engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
 
 In this example we launch the tool from the root directory of the tool's source code. The "-d"
  option allows you to specify in which directory it must look for all the librairies, classes and
- database configuration to load. The second main argument is the Groovy script to launch within the
+ database configuration to load. The "-X" options allows to specify a comma separated list of key=value
+ pairs that will be passed to the script as a Properties object and that may be used to modify the
+ behavior of the script. The third main argument is the Groovy script to launch within the
  context of the setup classloader. The given script will dump the contents of the jr_fsg_fsentry table,
  a Jackrabbit table that contains BLOBs which themselves are file contents such as the serialized
- namespace mapping and indexes, or the custom nodetypes XML descriptor.
+ namespace mapping and indexes, or the custom nodetypes XML descriptor. The -XdumpXML=true flag is used
+ to specify that we want to dump the XML file, by default XML files are not dumped.

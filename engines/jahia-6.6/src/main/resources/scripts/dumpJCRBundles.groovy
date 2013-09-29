@@ -1,3 +1,5 @@
+package scripts
+
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -8,22 +10,20 @@ import org.jdom.*;
 import org.jdom.output.*;
 import org.jdom.input.*;
 
-Logger logger = LoggerFactory.getLogger("dumpJCRFileSystem.groovy");
+Logger logger = LoggerFactory.getLogger("dumpJCRBundles.groovy");
 
 Connection connection = (Connection) jdbcConnection;
 
-logger.info("Dumping contents of table jr_fsg_fsentry...");
+logger.info("Dumping contents of table jr_default_bundle...");
 
-PreparedStatement preparedStatement = connection.prepareStatement("SELECT FSENTRY_PATH, FSENTRY_NAME, FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH FROM JR_FSG_FSENTRY");
+PreparedStatement preparedStatement = connection.prepareStatement("SELECT NODE_ID, BUNDLE_DATA FROM jr_default_bundle");
 
 ResultSet resultSet = preparedStatement.executeQuery();
 
 while (resultSet.next()) {
-    String path = resultSet.getString(1);
-    String name = resultSet.getString(2);
-    long lastModified = resultSet.getLong(4);
-    Date lastModifiedDate = new Date(lastModified);
-    long length = resultSet.getLong(5);
+    String nodeId = resultSet.getString(1);
+    InputStream bundleData = resultSet.getBinaryStream(2);
+    readBundle(bundleData);
     logger.info("path=" + path + " name=" + name + " lastModified=" + lastModifiedDate + " length=" + length);
     if (length > 0) {
         InputStream data = resultSet.getBinaryStream(3);
@@ -51,3 +51,8 @@ while (resultSet.next()) {
 
 resultSet.close();
 preparedStatement.close();
+
+private void readBundle(InputStream bundleData) {
+    DataInputStream bundleStream = new DataInputStream(bundleData);
+    int version = bundleStream.readUnsignedByte();
+}

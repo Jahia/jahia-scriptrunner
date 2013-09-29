@@ -7,14 +7,13 @@ import org.jahia.server.tools.scriptrunner.common.InContextRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Main bootstrap class
@@ -29,22 +28,35 @@ public class ScriptRunner {
 
     public static Options buildOptions() {
 
-         Option threads = OptionBuilder.withArgName("dir")
-                 .hasArg()
-                 .withDescription("Jahia installation directory")
-                 .withLongOpt("installationDirectory")
-                 .create("d");
+        Option threads = OptionBuilder.withArgName("dir")
+                .hasArg()
+                .withDescription("Jahia installation directory")
+                .withLongOpt("installationDirectory")
+                .create("d");
 
-         Option help =
-                 OptionBuilder.withDescription("Prints this help screen")
-                 .withLongOpt("help")
-                 .create("h");
+        Option scriptOptions = OptionBuilder.withArgName("scriptOptions")
+                .hasArg()
+                .withDescription("A comma separated list of key=value options to pass to the script")
+                .withLongOpt("scriptOptions")
+                .create("x");
 
-         Options options = new Options();
-         options.addOption(threads);
-         options.addOption(help);
-         return options;
-     }
+        Option listAvailableScripts = OptionBuilder
+                .withDescription("Outputs the list of built-in available scripts for this Jahia version")
+                .withLongOpt("listScripts")
+                .create("l");
+
+        Option help =
+                OptionBuilder.withDescription("Prints this help screen")
+                        .withLongOpt("help")
+                        .create("h");
+
+        Options options = new Options();
+        options.addOption(threads);
+        options.addOption(scriptOptions);
+        options.addOption(listAvailableScripts);
+        options.addOption(help);
+        return options;
+    }
 
     public static void main(String[] args) {
         // create the parser
@@ -66,7 +78,7 @@ public class ScriptRunner {
             if (line.hasOption("h")) {
                 // automatically generate the help statement
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp( "jahia-scriptrunner [options] project_directory [command]", options );
+                formatter.printHelp("jahia-scriptrunner [options] project_directory [command]", options);
                 return;
             }
 
@@ -83,17 +95,20 @@ public class ScriptRunner {
             }
 
             String command = null;
+            File scriptFile = null;
             if (lineArgs.length >= 1) {
                 StringBuffer commandBuffer = new StringBuffer();
-                for (int i=0; i<lineArgs.length; i++) {
+                for (int i = 0; i < lineArgs.length; i++) {
                     commandBuffer.append(lineArgs[i]);
                 }
                 command = commandBuffer.toString();
                 if ("".equals(command)) {
                     command = null;
                 }
+                if (command != null) {
+                    scriptFile = new File(command);
+                }
             }
-            File scriptFile = new File(command);
 
             List<URL> jahiaClassLoaderURLs = new ArrayList<URL>();
 
@@ -112,10 +127,10 @@ public class ScriptRunner {
             URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
             jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
 
-            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF"+File.separator+"classes");
+            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "classes");
             jahiaClassLoaderURLs.add(classesDirectory.toURI().toURL());
 
-            File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF"+File.separator+"lib");
+            File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "lib");
             File[] jarFiles = libDirectory.listFiles(new FilenameFilter() {
                 public boolean accept(File file, String name) {
                     if (name.toLowerCase().endsWith(".jar")) {
@@ -124,14 +139,67 @@ public class ScriptRunner {
                     return false;
                 }
             });
-            for (File jarFile : jarFiles) {
-                jahiaClassLoaderURLs.add(jarFile.toURI().toURL());
+            if (jarFiles != null) {
+                for (File jarFile : jarFiles) {
+                    jahiaClassLoaderURLs.add(jarFile.toURI().toURL());
+                }
             }
 
+            Properties scriptOptions = new Properties();
+            if (line.hasOption("x")) {
+                String scriptOptionList = line.getOptionValue("x");
+                String[] scriptOptionArray = scriptOptionList.split(",");
+                for (String scriptOption : scriptOptionArray) {
+                    int equalsPos = scriptOption.indexOf("=");
+                    if (equalsPos > -1) {
+                        String key = scriptOption.substring(0, equalsPos);
+                        String value = scriptOption.substring(equalsPos + 1);
+                        scriptOptions.put(key, value);
+                    } else {
+                        logger.error("Found invalid key-pair value: " + scriptOption + ", will ignore it!");
+                    }
+                }
+            }
+
+
             URLClassLoader urlClassLoader = new URLClassLoader(jahiaClassLoaderURLs.toArray(new URL[jahiaClassLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
-            Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.scriptrunner.engines.common.InContextRunnerImpl");
-            InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
-            inContextRunner.run(jahiaInstallLocationFile, scriptFile, urlClassLoader);
+            if (line.hasOption("l")) {
+                InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/availableScripts.properties");
+                if (scriptClassLoaderStream == null) {
+                    logger.error("Couldn't find a built-in script list !");
+                }
+                Properties availableScripts = new Properties();
+                availableScripts.load(scriptClassLoaderStream);
+                logger.info("Available built-in scripts:");
+                for (String availableScriptName : availableScripts.stringPropertyNames()) {
+                    logger.info("    " + availableScriptName + " : " + availableScripts.getProperty(availableScriptName));
+                }
+                return;
+            }
+            String scriptName = null;
+            InputStream scriptStream = null;
+            if (scriptFile != null && !scriptFile.exists()) {
+                logger.info("Script file not found on FileSystem, searching for built-in scripts...");
+                InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/" + command);
+                if (scriptClassLoaderStream == null) {
+                    logger.error("Couldn't find a built-in script named" + command + ", aborting !");
+                    return;
+                }
+                scriptName = command;
+                scriptStream = scriptClassLoaderStream;
+            } else {
+                if (scriptFile != null) {
+                    scriptName = scriptFile.getName();
+                    scriptStream = new FileInputStream(scriptFile);
+                }
+            }
+            if (scriptStream != null) {
+                Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.scriptrunner.engines.common.InContextRunnerImpl");
+                InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
+                inContextRunner.run(jahiaInstallLocationFile, scriptName, scriptStream, scriptOptions, urlClassLoader);
+            } else {
+                logger.error("Couldn't resolve any script to run, aborting !");
+            }
 
         } catch (ParseException exp) {
             // oops, something went wrong
@@ -192,7 +260,7 @@ public class ScriptRunner {
         String fileName = resourceURL.getFile();
         int lastSlashPos = fileName.lastIndexOf("/");
         if (lastSlashPos > -1) {
-            fileName = fileName.substring(lastSlashPos+1);
+            fileName = fileName.substring(lastSlashPos + 1);
         }
         File destFile = new File(tempDirectory + File.separator + fileName);
         logger.info("Extracting resource " + resourceURL + " to " + destFile);

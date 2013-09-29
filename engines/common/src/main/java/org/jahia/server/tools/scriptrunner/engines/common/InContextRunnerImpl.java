@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * The default implementation of the in-context classloader runner
@@ -26,14 +27,16 @@ public class InContextRunnerImpl implements InContextRunner {
     Connection connection;
     File jahiaInstallLocationFile;
     ClassLoader classLoader;
+    Properties scriptOptions;
 
-    public boolean run(File jahiaInstallLocationFile, File scriptFile, ClassLoader classLoader) {
+    public boolean run(File jahiaInstallLocationFile, String scriptName, InputStream scriptStream, Properties scriptOptions, ClassLoader classLoader) {
         this.jahiaInstallLocationFile = jahiaInstallLocationFile;
         this.classLoader = classLoader;
+        this.scriptOptions = scriptOptions;
         ClassLoader previousContextClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
         initialize();
-        runScript(scriptFile);
+        runScript(scriptName, scriptStream);
         Thread.currentThread().setContextClassLoader(classLoader);
         return true;
     }
@@ -43,13 +46,13 @@ public class InContextRunnerImpl implements InContextRunner {
         getJDBCConnection(databaseConfiguration);
     }
 
-    public void runScript(File scriptFile) {
+    public void runScript(String scriptName, InputStream scriptStream) {
         // create a script engine manager
         ScriptEngineManager factory = new ScriptEngineManager();
-        int lastDotPos = scriptFile.getName().lastIndexOf(".");
+        int lastDotPos = scriptName.lastIndexOf(".");
         String extension = null;
         if (lastDotPos > -1) {
-            extension = scriptFile.getName().substring(lastDotPos+1);
+            extension = scriptName.substring(lastDotPos+1);
         }
         ScriptEngine engine = factory.getEngineByExtension(extension);
         try {
@@ -57,11 +60,11 @@ public class InContextRunnerImpl implements InContextRunner {
             bindings.put("jdbcConnection", connection);
             bindings.put("jahiaInstallLocationFile", jahiaInstallLocationFile);
             bindings.put("classLoader", classLoader);
-            engine.eval(new FileReader(scriptFile), bindings);
+            bindings.put("scriptOptions", scriptOptions);
+            bindings.put("databaseConfiguration", databaseConfiguration);
+            engine.eval(new InputStreamReader(scriptStream), bindings);
         } catch (ScriptException e) {
-            logger.error("Error executing script " + scriptFile, e);
-        } catch (FileNotFoundException e) {
-            logger.error("Error executing script " + scriptFile, e);
+            logger.error("Error executing script " + scriptName, e);
         }
 
     }
