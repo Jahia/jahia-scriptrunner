@@ -52,8 +52,14 @@ if (groovyScriptOptions.containsKey("namespaceOperation") != null &&
             logger.info("Removed namespace prefix=" + namespacePrefix + " uri=" + namespaceUri + " from ns_reg.properties");
         }
         if (nsIdx.containsKey(namespaceUri)) {
-            nsIdx.remove(namespaceUri);
-            logger.info("Removed namespace uri=" + namespaceUri + " from ns_idx.properties");
+            // Before removing the index entry, let's check there there is no more remaining references to this uri
+            // in the ns_reg.properties table.
+            if (nsReg.containsValue(namespaceUri)) {
+                logger.warn("Remaining references to the uri=" + namespaceUri + " in the ns_reg.properties file, will not remove from ns_idx.properties file");
+            } else {
+                nsIdx.remove(namespaceUri);
+                logger.info("Removed namespace uri=" + namespaceUri + " from ns_idx.properties");
+            }
         }
     }
 } else {
