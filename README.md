@@ -57,7 +57,7 @@ Command line format:
 
 Here a sample command line we will describe :
 
-    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -XdumpXml=true engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
 
 In this example we launch the tool from the root directory of the tool's source code. The "-d"
  option allows you to specify in which directory it must look for all the librairies, classes and
@@ -66,7 +66,7 @@ In this example we launch the tool from the root directory of the tool's source 
  behavior of the script. The third main argument is the Groovy script to launch within the
  context of the setup classloader. The given script will dump the contents of the jr_fsg_fsentry table,
  a Jackrabbit table that contains BLOBs which themselves are file contents such as the serialized
- namespace mapping and indexes, or the custom nodetypes XML descriptor. The -XdumpXML=true flag is used
+ namespace mapping and indexes, or the custom nodetypes XML descriptor. The -x dumpXML=true flag is used
  to specify that we want to dump the XML file, by default XML files are not dumped.
 
 Here's another powerful example :
