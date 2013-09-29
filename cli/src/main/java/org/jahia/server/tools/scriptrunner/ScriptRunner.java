@@ -221,7 +221,7 @@ public class ScriptRunner {
     public static void displayStartupBanner() throws Exception {
         String message =
                 "==========================================================================\n" +
-                        "Jahia Script Runner v" + getScriptRunnerVersion() + " (c) 2006-2013 All Rights Reserved.     \n" +
+                        "Jahia Script Runner v" + getScriptRunnerVersion() + " (c) 2013 All Rights Reserved.     \n" +
                         "==========================================================================\n";
         System.out.println(message);
     }

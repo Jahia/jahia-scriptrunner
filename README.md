@@ -68,3 +68,11 @@ In this example we launch the tool from the root directory of the tool's source 
  a Jackrabbit table that contains BLOBs which themselves are file contents such as the serialized
  namespace mapping and indexes, or the custom nodetypes XML descriptor. The -XdumpXML=true flag is used
  to specify that we want to dump the XML file, by default XML files are not dumped.
+
+Here's another powerful example :
+
+    ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ -x namespaceOperation=add,namespace=scriptTest:http://www.jahia.com/script-test updateJCRNamespaces.groovy
+
+In this example we add the specified prefix and namespace uri to the DB file system namespace registry
+file ns_reg.properties and ns_idx.properties
+
