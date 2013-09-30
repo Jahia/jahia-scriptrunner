@@ -117,7 +117,7 @@ private int setDBFile(boolean alreadyExists, String path, String name, long last
 
     if (alreadyExists) {
         preparedStatement = connection.prepareStatement("UPDATE JR_FSG_FSENTRY SET FSENTRY_DATA=?, FSENTRY_LASTMOD=?, FSENTRY_LENGTH=? WHERE FSENTRY_PATH=? AND FSENTRY_NAME=?");
-        preparedStatement.setBinaryStream(1, inputStream, length);
+        preparedStatement.setBinaryStream(1, inputStream, (int) length);
         preparedStatement.setLong(2, lastModifiedTime);
         preparedStatement.setLong(3, length);
         preparedStatement.setString(4, path);
@@ -127,7 +127,7 @@ private int setDBFile(boolean alreadyExists, String path, String name, long last
         preparedStatement = connection.prepareStatement("INSERT INTO JR_FSG_FSENTRY (FSENTRY_PATH, FSENTRY_NAME, FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH) VALUES (?, ?, ?, ?, ?)");
         preparedStatement.setString(1, path);
         preparedStatement.setString(2, name);
-        preparedStatement.setBinaryStream(3, inputStream, length);
+        preparedStatement.setBinaryStream(3, inputStream, (int) length);
         preparedStatement.setLong(4, lastModifiedTime);
         preparedStatement.setLong(5, length);
         count = preparedStatement.executeUpdate();
