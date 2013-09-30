@@ -1,1 +1,0 @@
-java -jar cli/target/jahia-scriptrunner-1.0-SNAPSHOT-with-deps.jar $@
