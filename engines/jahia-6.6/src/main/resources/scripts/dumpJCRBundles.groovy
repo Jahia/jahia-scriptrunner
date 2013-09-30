@@ -11,6 +11,7 @@ import org.apache.jackrabbit.core.id.NodeId
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry
 import org.apache.jackrabbit.core.persistence.PMContext
 import org.apache.jackrabbit.core.persistence.pool.BundleDbPersistenceManager
+import org.apache.jackrabbit.core.state.NodeState
 import org.apache.jackrabbit.core.util.db.ConnectionFactory
 import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
 import org.jdom.Element
@@ -74,6 +75,16 @@ defaultDbPersistenceManager.consistencyCheck = "true";
 defaultDbPersistenceManager.schemaObjectPrefix = "jr_default_";
 defaultDbPersistenceManager.init(defaultPMContext);
 
+Iterable<NodeId> allNodeIds = defaultDbPersistenceManager.getAllNodeIds(null, 0);
+Iterator<NodeId> allNodeIdIterator = allNodeIds.iterator();
+int count=0;
+while (allNodeIdIterator.hasNext()) {
+    NodeId nodeId = allNodeIdIterator.next();
+    NodeState nodeState = defaultDbPersistenceManager.load(nodeId);
+    count++;
+}
+logger.info("Loaded " + count + " node states");
+
 LocalFileSystem localLiveFileSystem = new LocalFileSystem();
 localLiveFileSystem.path = jackrabbitHomeDir.absolutePath + File.separator + "workspaces" + File.separator + "live";
 PMContext livePMContext = new PMContext(jackrabbitHomeDir, localLiveFileSystem, loadRootNodeId(dbFileSystem), namespaceRegistry, nodeTypeRegistry, fileDataStore);
@@ -104,21 +115,6 @@ versioningDbPersistenceManager.user = dbConfiguration.userName;
 versioningDbPersistenceManager.consistencyCheck = "true";
 versioningDbPersistenceManager.schemaObjectPrefix = "jr_v_";
 versioningDbPersistenceManager.init(versioningPmContext);
-
-/*
-while (resultSet.next()) {
-    String nodeId = resultSet.getString(1);
-    InputStream bundleData = resultSet.getBinaryStream(2);
-    readBundle(nodeId, bundleData);
-}
-
-resultSet.close();
-preparedStatement.close();
-*/
-
-private void readBundle(String nodeId, InputStream bundleData) {
-
-}
 
 private DataSource getDataSource(ConnectionFactory connectionFactory, String driver, String url, String user, String password) throws Exception {
     return connectionFactory.getDataSource(driver, url, user, password);
