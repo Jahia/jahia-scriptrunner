@@ -42,6 +42,12 @@ public class ScriptRunner {
                 .withLongOpt("scriptOptions")
                 .create("x");
 
+        Option jahiaVersion = OptionBuilder.withArgName("version")
+                .hasArg()
+                .withDescription("Overrides the automatic Jahia version detection and specify a version using this command line option")
+                .withLongOpt("jahiaVersion")
+                .create("v");
+
         Option listAvailableScripts = OptionBuilder
                 .withDescription("Outputs the list of built-in available scripts for this Jahia version")
                 .withLongOpt("listScripts")
@@ -55,6 +61,7 @@ public class ScriptRunner {
         Options options = new Options();
         options.addOption(threads);
         options.addOption(scriptOptions);
+        options.addOption(jahiaVersion);
         options.addOption(listAvailableScripts);
         options.addOption(help);
         return options;
@@ -133,17 +140,22 @@ public class ScriptRunner {
                     return false;
                 }
             });
-            String jahiaVersion = "6.6"; // @TODO resolve this either from the Jahia installation directory or through a command line parameter
-            Version jahiaImplementationVersion = null;
-            if (jarFiles != null) {
-                for (File file : jarFiles) {
-                    if (file.getName().toLowerCase().startsWith("jahia-impl-")) {
-                        JarFile jarFile = new JarFile(file);
-                        Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
-                        String implementationVersion = mainAttributes.getValue("Implementation-Version");
-                        jahiaImplementationVersion = new Version(implementationVersion);
-                        jahiaVersion = implementationVersion;
-                        String implementationBuild = mainAttributes.getValue("Implementation-Build");
+            String jahiaVersion = "6.6";
+            if (line.hasOption("v")) {
+                jahiaVersion = line.getOptionValue("v");
+            } else {
+                Version jahiaImplementationVersion = null;
+                if (jarFiles != null) {
+                    for (File file : jarFiles) {
+                        if (file.getName().toLowerCase().startsWith("jahia-impl-")) {
+                            JarFile jarFile = new JarFile(file);
+                            Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
+                            String implementationVersion = mainAttributes.getValue("Implementation-Version");
+                            jahiaImplementationVersion = new Version(implementationVersion);
+                            jahiaVersion = implementationVersion;
+                            String implementationBuild = mainAttributes.getValue("Implementation-Build");
+                            logger.info("Detected Jahia v" + jahiaImplementationVersion + " build number " + implementationBuild);
+                        }
                     }
                 }
             }
@@ -156,6 +168,9 @@ public class ScriptRunner {
                 } else {
                     jahiaVersion = "";
                 }
+            }
+            if (jahiaVersion.length() > 0) {
+                logger.info("Using script engine v" + jahiaVersion);
             }
             URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
             jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
