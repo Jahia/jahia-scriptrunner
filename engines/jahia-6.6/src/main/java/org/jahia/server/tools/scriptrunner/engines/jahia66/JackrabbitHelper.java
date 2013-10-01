@@ -41,6 +41,7 @@ public class JackrabbitHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JackrabbitHelper.class);
 
+    private File jahiaInstallLocationFile;
     private File jackrabbitHomeDir;
     private DatabaseConfiguration databaseConfiguration;
     private ConnectionFactory connectionFactory = new ConnectionFactory();
@@ -62,6 +63,7 @@ public class JackrabbitHelper {
     private boolean consistencyFix = false;
 
     public JackrabbitHelper(File jahiaInstallLocationFile, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException {
+        this.jahiaInstallLocationFile = jahiaInstallLocationFile;
         this.databaseConfiguration = databaseConfiguration;
         this.consistencyCheck = consistencyCheck;
         this.consistencyFix = consistencyFix;
@@ -118,9 +120,20 @@ public class JackrabbitHelper {
     }
 
     private Element getRepositoryXmlRootElement(File jahiaInstallLocation) {
+        File jackrabbitRepositoryXmlFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
+        return getXmlRootElement(jackrabbitRepositoryXmlFile);
+    }
+
+    private Element getWorkspaceXmlRootElement(File jahiaInstallLocation, String workspaceName) {
+        File jackrabbitRepositoryXmlFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "var" + File.separator + "repository" + File.separator + "workspaces" + File.separator + workspaceName + File.separator + "workspace.xml");
+        return getXmlRootElement(jackrabbitRepositoryXmlFile);
+    }
+
+    private Element getXmlRootElement(File xmlFile) {
+        FileReader fileReader = null;
         SAXBuilder saxBuilder = new SAXBuilder();
         try {
-            InputStreamReader fileReader = new InputStreamReader(new FileInputStream(new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml")));
+            fileReader = new FileReader(xmlFile);
             org.jdom.Document jdomDocument = saxBuilder.build(fileReader);
             Element rootElement = jdomDocument.getRootElement();
             return rootElement;
@@ -130,6 +143,8 @@ public class JackrabbitHelper {
             logger.error("Error loading database configuration", e);
         } catch (IOException e) {
             logger.error("Error loading database configuration", e);
+        } finally {
+            IOUtils.closeQuietly(fileReader);
         }
         return null;
     }
@@ -197,6 +212,10 @@ public class JackrabbitHelper {
         if (workspacePMs.containsKey(workspaceName)) {
             return workspacePMs.get(workspaceName);
         }
+
+        Element workspaceXmlRootElement = getWorkspaceXmlRootElement(jahiaInstallLocationFile, workspaceName);
+        Element fileSystemElement = (Element) XPath.newInstance("/Workspace/FileSystem").selectSingleNode(workspaceXmlRootElement);
+
 
         LocalFileSystem localLiveFileSystem = new LocalFileSystem();
         localLiveFileSystem.setPath(jackrabbitHomeDir.getAbsolutePath() + File.separator + "workspaces" + File.separator + workspaceName);
