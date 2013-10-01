@@ -121,6 +121,7 @@
                   </manifest>
                   <manifestEntries>
                     <Implementation-Build>${buildNumber}</Implementation-Build>
+                    <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
                   </manifestEntries>
                 </archive>
               </configuration>

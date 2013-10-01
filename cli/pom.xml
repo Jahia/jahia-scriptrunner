@@ -80,6 +80,7 @@
                             <Implementation-Vendor-Id>${project.groupId}</Implementation-Vendor-Id>
                             <Implementation-Vendor>${project.organization.name}</Implementation-Vendor>
                             <Implementation-Build>${buildNumber}</Implementation-Build>
+                            <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
                         </manifestEntries>
                     </archive>
                     <descriptors>
