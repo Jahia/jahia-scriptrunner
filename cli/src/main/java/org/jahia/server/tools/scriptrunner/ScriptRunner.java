@@ -14,6 +14,8 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
 
 /**
  * Main bootstrap class
@@ -122,14 +124,6 @@ public class ScriptRunner {
             jahiaClassLoaderURLs.add(extractedScriptRunnerCommonEngineJar);
 
             // resolve the Jahia engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
-            String jahiaVersion = "6.6"; // @TODO resolve this either from the Jahia installation directory or through a command line parameter
-            URL scriptRunnerJahiaEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-jahia-" + jahiaVersion + "-" + projectVersion + ".jar");
-            URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
-            jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
-
-            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "classes");
-            jahiaClassLoaderURLs.add(classesDirectory.toURI().toURL());
-
             File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "lib");
             File[] jarFiles = libDirectory.listFiles(new FilenameFilter() {
                 public boolean accept(File file, String name) {
@@ -139,6 +133,36 @@ public class ScriptRunner {
                     return false;
                 }
             });
+            String jahiaVersion = "6.6"; // @TODO resolve this either from the Jahia installation directory or through a command line parameter
+            Version jahiaImplementationVersion = null;
+            if (jarFiles != null) {
+                for (File file : jarFiles) {
+                    if (file.getName().toLowerCase().startsWith("jahia-impl-")) {
+                        JarFile jarFile = new JarFile(file);
+                        Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
+                        String implementationVersion = mainAttributes.getValue("Implementation-Version");
+                        jahiaImplementationVersion = new Version(implementationVersion);
+                        jahiaVersion = implementationVersion;
+                        String implementationBuild = mainAttributes.getValue("Implementation-Build");
+                    }
+                }
+            }
+            URL scriptRunnerJahiaEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-jahia-" + jahiaVersion + "-" + projectVersion + ".jar");
+            while (scriptRunnerJahiaEngineJar == null && jahiaVersion.length() > 0) {
+                int lastDotPos = jahiaVersion.lastIndexOf(".");
+                if (lastDotPos > -1) {
+                    jahiaVersion = jahiaVersion.substring(0, lastDotPos);
+                    scriptRunnerJahiaEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-jahia-" + jahiaVersion + "-" + projectVersion + ".jar");
+                } else {
+                    jahiaVersion = "";
+                }
+            }
+            URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
+            jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
+
+            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "classes");
+            jahiaClassLoaderURLs.add(classesDirectory.toURI().toURL());
+
             if (jarFiles != null) {
                 for (File jarFile : jarFiles) {
                     jahiaClassLoaderURLs.add(jarFile.toURI().toURL());
