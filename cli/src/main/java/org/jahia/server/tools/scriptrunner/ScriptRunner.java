@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.jar.Attributes;
@@ -261,9 +262,9 @@ public class ScriptRunner {
 
     public static void displayStartupBanner() throws Exception {
         String message =
-                "==========================================================================\n" +
+                "==========================================================================================\n" +
                         "Jahia Script Runner v" + getScriptRunnerVersion() + " build " + getScriptRunnerBuildNumber() + " (c) 2013 All Rights Reserved.     \n" +
-                        "==========================================================================\n";
+                        "==========================================================================================\n";
         System.out.println(message);
     }
 
@@ -303,12 +304,19 @@ public class ScriptRunner {
         }
         Package scriptRunnerPackage = ScriptRunner.class.getPackage();
         if (scriptRunnerPackage != null) {
-            InputStream manifestStream = ScriptRunner.class.getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF");
-            if (manifestStream != null) {
-                Manifest scriptRunnerManifest = new Manifest(manifestStream);
-                scriptRunnerBuildNumber = scriptRunnerManifest.getMainAttributes().getValue("Implementation-Build");
-                return scriptRunnerBuildNumber;
+            Enumeration<URL> manifestEnum = ScriptRunner.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+            while (manifestEnum.hasMoreElements() && scriptRunnerBuildNumber == null) {
+                URL manifestURL = manifestEnum.nextElement();
+                InputStream manifestStream = manifestURL.openStream();
+                Manifest manifest = new Manifest(manifestStream);
+                Attributes mainAttributes = manifest.getMainAttributes();
+                String implementationVendorId = mainAttributes.getValue("Implementation-Vendor-Id");
+                if ("org.jahia.server.tools.scriptrunner".equals(implementationVendorId)) {
+                    scriptRunnerBuildNumber = mainAttributes.getValue("Implementation-Timestamp");
+                }
+                manifestStream.close();
             }
+            return scriptRunnerBuildNumber;
         }
         throw new Exception("Couldn't resolve ScriptRunner build number !");
     }
