@@ -8,6 +8,7 @@ public class DatabaseConfiguration {
     private String connectionURL;
     private String userName;
     private String password;
+    private String schema;
 
     public DatabaseConfiguration(String driverName, String connectionURL, String userName, String password) {
         this.driverName = driverName;
@@ -30,5 +31,13 @@ public class DatabaseConfiguration {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
     }
 }
