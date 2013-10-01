@@ -1,3 +1,5 @@
 - Improve packaging to have an easy way to distribute the tool
-- Implement bundle manipulation script (requires implementing bundle serialization format which will take time)
-- Add JDBC transaction to allow large object modifications and retrieval under PostgreSQL which requires them.
+- Improve JackrabbitHelper to remove a lot of hardcoded configuration (for example FileSystem instances) and replace
+them with values coming from the real Jackrabbit configuration. Same thing could also be done for the parameters to
+initialize the persistencemanagers but that is a bit more complex since we would have to integrate some kind of bean
+utility to call the setters.

@@ -53,3 +53,5 @@ while (resultSet.next()) {
 
 resultSet.close();
 preparedStatement.close();
+
+connection.commit();

@@ -25,8 +25,8 @@ nsIdxStream.close();
 
 // now let's perform the modifications
 Properties groovyScriptOptions = (Properties) scriptOptions;
-if (groovyScriptOptions.containsKey("namespaceOperation") != null &&
-        groovyScriptOptions.containsKey("namespace") != null) {
+if (groovyScriptOptions.containsKey("namespaceOperation") &&
+        groovyScriptOptions.containsKey("namespace")) {
     String namespaceOperation = groovyScriptOptions.getProperty("namespaceOperation").toLowerCase();
     String namespace = groovyScriptOptions.getProperty("namespace");
     String namespacePrefix = null;
@@ -108,6 +108,8 @@ private InputStream getDBFile(String path, String name, Connection connection) {
     resultSet.close();
     preparedStatement.close();
 
+    connection.commit();
+
     return result;
 }
 
@@ -132,6 +134,8 @@ private int setDBFile(boolean alreadyExists, String path, String name, long last
         preparedStatement.setLong(5, length);
         count = preparedStatement.executeUpdate();
     }
+
+    connection.commit();
 
     return count;
 }

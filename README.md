@@ -33,7 +33,10 @@ supported) and create a connection to the database.
 Once all this is done it will then load and execute the Groovy script specified on the command line,
 passing it the following bound variables :
 
-    jdbcConnection - a java.sql.Connection class that contains the active connection to the database
+    jdbcConnection - a java.sql.Connection class that contains the active connection to the database. IMPORTANT:
+    The JDBC connection autocommit is NOT activated, remember to always use commits to make sure the modifications
+    are properly sent to the database. This is done because PostgreSQL requires non-autocommit connections to work
+    with BLOBs.
     jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
     classLoader - the ClassLoader used to load all the Jahia JARs and classes
     scriptOptions - a Properties object with all the options passed on the command line using the -X
