@@ -8,8 +8,6 @@ import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import java.sql.Connection
-
 Logger logger = LoggerFactory.getLogger("checkJCRLanguageIntegrity.groovy");
 
 DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;

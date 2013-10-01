@@ -1,4 +1,3 @@
 - Improve packaging to have an easy way to distribute the tool
-- Add build number display at tool startup.
 - Implement bundle manipulation script (requires implementing bundle serialization format which will take time)
 - Add JDBC transaction to allow large object modifications and retrieval under PostgreSQL which requires them.
