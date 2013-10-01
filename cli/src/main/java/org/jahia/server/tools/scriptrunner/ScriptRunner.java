@@ -174,6 +174,9 @@ public class ScriptRunner {
             }
             if (jahiaVersion.length() > 0) {
                 logger.info("Using script engine v" + jahiaVersion);
+            } else {
+                logger.error("Couldn't find any engine for the specified Jahia version, aborting !");
+                return;
             }
             URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
             jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
