@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 /**
  * Main bootstrap class
@@ -25,6 +26,7 @@ public class ScriptRunner {
     private static final Logger logger = LoggerFactory.getLogger(ScriptRunner.class);
     private static String jahiaInstallLocation;
     private static Version scriptRunnerVersion;
+    private static String scriptRunnerBuildNumber;
     private static File userHomeDir;
     private static File tempDirectory;
 
@@ -260,7 +262,7 @@ public class ScriptRunner {
     public static void displayStartupBanner() throws Exception {
         String message =
                 "==========================================================================\n" +
-                        "Jahia Script Runner v" + getScriptRunnerVersion() + " (c) 2013 All Rights Reserved.     \n" +
+                        "Jahia Script Runner v" + getScriptRunnerVersion() + " build " + getScriptRunnerBuildNumber() + " (c) 2013 All Rights Reserved.     \n" +
                         "==========================================================================\n";
         System.out.println(message);
     }
@@ -292,7 +294,23 @@ public class ScriptRunner {
             scriptRunnerVersion = new Version(scriptRunnerPackage.getImplementationVersion());
             return scriptRunnerVersion;
         }
-        throw new Exception("Couldn't resolve ScriptRunner version or build number !");
+        throw new Exception("Couldn't resolve ScriptRunner version !");
+    }
+
+    public static String getScriptRunnerBuildNumber() throws Exception {
+        if (scriptRunnerBuildNumber != null) {
+            return scriptRunnerBuildNumber;
+        }
+        Package scriptRunnerPackage = ScriptRunner.class.getPackage();
+        if (scriptRunnerPackage != null) {
+            InputStream manifestStream = ScriptRunner.class.getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF");
+            if (manifestStream != null) {
+                Manifest scriptRunnerManifest = new Manifest(manifestStream);
+                scriptRunnerBuildNumber = scriptRunnerManifest.getMainAttributes().getValue("Implementation-Build");
+                return scriptRunnerBuildNumber;
+            }
+        }
+        throw new Exception("Couldn't resolve ScriptRunner build number !");
     }
 
     public static File extractToTemp(URL resourceURL) throws IOException {

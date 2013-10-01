@@ -94,7 +94,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.0-beta-3</version>
+                <version>1.2</version>
                 <executions>
                     <execution>
                         <phase>validate</phase>
@@ -104,12 +104,26 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
+                    <shortRevisionLength>5</shortRevisionLength>
                     <useLastCommittedRevision>true</useLastCommittedRevision>
                     <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
                     <revisionOnScmFailure>00000</revisionOnScmFailure>
                 </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jar-plugin</artifactId>
+              <version>2.4</version>
+              <configuration>
+                <archive>
+                  <manifest>
+                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                  </manifest>
+                  <manifestEntries>
+                    <Implementation-Build>${buildNumber}</Implementation-Build>
+                  </manifestEntries>
+                </archive>
+              </configuration>
             </plugin>
 
             <plugin>
