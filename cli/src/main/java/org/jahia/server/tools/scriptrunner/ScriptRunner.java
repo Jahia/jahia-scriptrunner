@@ -224,7 +224,7 @@ public class ScriptRunner {
             String scriptName = null;
             InputStream scriptStream = null;
             if (scriptFile != null && !scriptFile.exists()) {
-                logger.info("Script file not found on FileSystem, searching for built-in scripts...");
+                logger.info("Script file not found on file system at specified path, searching for built-in scripts...");
                 InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/" + command);
                 if (scriptClassLoaderStream == null) {
                     logger.error("Couldn't find a built-in script named" + command + ", aborting !");
