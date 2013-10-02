@@ -8,7 +8,7 @@ public class DatabaseConfiguration {
     private String connectionURL;
     private String userName;
     private String password;
-    private String schema;
+    private String databaseType;
 
     // Empty constructor to use as a JavaBean by commons-beanutils
     public DatabaseConfiguration() {
@@ -37,12 +37,12 @@ public class DatabaseConfiguration {
         return password;
     }
 
-    public String getSchema() {
-        return schema;
+    public String getDatabaseType() {
+        return databaseType;
     }
 
-    public void setSchema(String schema) {
-        this.schema = schema;
+    public void setDatabaseType(String databaseType) {
+        this.databaseType = databaseType;
     }
 
     public void setConnectionURL(String connectionURL) {

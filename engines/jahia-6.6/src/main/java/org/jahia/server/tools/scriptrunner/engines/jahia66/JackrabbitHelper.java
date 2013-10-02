@@ -1,19 +1,22 @@
 package org.jahia.server.tools.scriptrunner.engines.jahia66;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.NamespaceRegistryImpl;
+import org.apache.jackrabbit.core.config.DataSourceConfig;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.fs.*;
-import org.apache.jackrabbit.core.fs.db.DbFileSystem;
-import org.apache.jackrabbit.core.fs.local.LocalFileSystem;
+import org.apache.jackrabbit.core.fs.FileSystem;
+import org.apache.jackrabbit.core.fs.FileSystemException;
+import org.apache.jackrabbit.core.fs.FileSystemResource;
 import org.apache.jackrabbit.core.id.NodeId;
 import org.apache.jackrabbit.core.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.core.nodetype.NodeTypeConflictException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PMContext;
-import org.apache.jackrabbit.core.persistence.pool.BundleDbPersistenceManager;
+import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.state.NodeState;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
+import org.apache.jackrabbit.core.util.db.DatabaseAware;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.name.NameFactoryImpl;
 import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration;
@@ -27,9 +30,8 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import javax.sql.DataSource;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 /**
  * A collection of helper methods to make it quicker to develop scripts that manipulate Jackrabbit data structure
@@ -45,7 +47,7 @@ public class JackrabbitHelper {
     private DatabaseConfiguration databaseConfiguration;
     private ConnectionFactory connectionFactory = new ConnectionFactory();
 
-    private DbFileSystem dbFileSystem = null;
+    private FileSystem repositoryFileSystem = null;
 
     private NamespaceRegistryImpl namespaceRegistry = null;
 
@@ -55,11 +57,13 @@ public class JackrabbitHelper {
     private NodeId rootNodeId;
     private DataSource dataSource;
 
-    private BundleDbPersistenceManager versioningPM = null;
-    private Map<String, BundleDbPersistenceManager> workspacePMs = new HashMap<String, BundleDbPersistenceManager>();
+    private PersistenceManager versioningPM = null;
+    private Map<String, PersistenceManager> workspacePMs = new HashMap<String, PersistenceManager>();
 
     private boolean consistencyCheck = false;
     private boolean consistencyFix = false;
+
+    private Properties jackrabbitProperties = new Properties();
 
     public JackrabbitHelper(File jahiaInstallLocationFile, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException, JDOMException {
         this.jahiaInstallLocationFile = jahiaInstallLocationFile;
@@ -68,10 +72,22 @@ public class JackrabbitHelper {
         this.consistencyFix = consistencyFix;
         this.jackrabbitHomeDir = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator + "repository");
         this.repositoryXmlRootElement = getRepositoryXmlRootElement(jahiaInstallLocationFile);
-        this.dbFileSystem = getDbFileSystem(repositoryXmlRootElement);
-        this.dataStore = getDataStoreInstance(repositoryXmlRootElement);
+        DataSourceConfig dataSourceConfig = new DataSourceConfig();
+        Properties dataSourceProperties = new Properties();
+        dataSourceProperties.setProperty(DataSourceConfig.DRIVER, databaseConfiguration.getDriverClassName());
+        dataSourceProperties.setProperty(DataSourceConfig.URL, databaseConfiguration.getConnectionURL());
+        dataSourceProperties.setProperty(DataSourceConfig.USER, databaseConfiguration.getUserName());
+        dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, databaseConfiguration.getPassword());
+        dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, databaseConfiguration.getDatabaseType());
+        dataSourceConfig.addDataSourceDefinition("jahiaDS", dataSourceProperties);
+        jackrabbitProperties.setProperty("rep.home", jackrabbitHomeDir.getAbsolutePath());
+        jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyCheck", Boolean.toString(consistencyCheck));
+        jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyFix", Boolean.toString(consistencyFix));
+        connectionFactory.registerDataSources(dataSourceConfig);
+        this.repositoryFileSystem = getFileSystem(repositoryXmlRootElement, "/Repository/FileSystem", jackrabbitProperties);
+        this.dataStore = getDataStoreInstance(repositoryXmlRootElement, jackrabbitProperties);
         dataStore.init(jackrabbitHomeDir.getAbsolutePath());
-        this.rootNodeId = loadRootNodeId(dbFileSystem);
+        this.rootNodeId = loadRootNodeId(repositoryFileSystem);
     }
 
     public DataSource getDataSource() throws Exception {
@@ -121,9 +137,9 @@ public class JackrabbitHelper {
     private Element getRepositoryXmlRootElement(File jahiaInstallLocation) throws JDOMException {
         File jackrabbitRepositoryXmlFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
         Element rootElement = getXmlRootElement(jackrabbitRepositoryXmlFile);
-        if (databaseConfiguration.getSchema() == null) {
+        if (databaseConfiguration.getDatabaseType() == null) {
             Element databaseTypeElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource/param[@name='databaseType']").selectSingleNode(rootElement);
-            databaseConfiguration.setSchema(databaseTypeElement.getAttributeValue("value"));
+            databaseConfiguration.setDatabaseType(databaseTypeElement.getAttributeValue("value"));
         }
         return rootElement;
     }
@@ -153,143 +169,173 @@ public class JackrabbitHelper {
         return null;
     }
 
-    private BundleDbPersistenceManager getWorkspacePMInstance(Element rootElement) {
-        return getPersistenceManagerInstance(rootElement, "/Workspace/PersistenceManager");
+    private Properties getParameters(Element parentElement, Properties existingProperties) {
+        List<Element> paramElements = parentElement.getChildren("param");
+        Properties parameters = new Properties();
+        for (Element paramElement : paramElements) {
+            String paramName = paramElement.getAttributeValue("name");
+            String paramValue = paramElement.getAttributeValue("value");
+            String propertyName = null;
+            while ((propertyName = getPropertyReference(paramValue)) != null) {
+                if (existingProperties.getProperty(propertyName) != null) {
+                    paramValue = paramValue.replace("${" + propertyName + "}", existingProperties.getProperty(propertyName));
+                } else if (parameters.getProperty(propertyName) != null) {
+                    paramValue = paramValue.replace("${" + propertyName + "}", parameters.getProperty(propertyName));
+                } else {
+                    logger.warn("Couldn't find a property name " + propertyName + ", aborting property resolving...");
+                    break;
+                }
+            }
+            parameters.put(paramName, paramValue);
+        }
+        return parameters;
     }
 
-    private BundleDbPersistenceManager getVersioningPMInstance(Element rootElement) {
-        return getPersistenceManagerInstance(rootElement, "/Repository/Versioning/PersistenceManager");
+    private String getPropertyReference(String value) {
+        int markerStart = value.indexOf("${");
+        if (markerStart < 0) {
+            return null;
+        }
+        int markerEnd = value.indexOf("}", markerStart+"${".length());
+        if (markerEnd < 0) {
+            return null;
+        }
+        return value.substring(markerStart+"${".length(), markerEnd);
     }
 
-    private BundleDbPersistenceManager getPersistenceManagerInstance(Element rootElement, String xPathQuery) {
+    private PersistenceManager getWorkspacePMInstance(Element rootElement, Properties existingProperties) {
+        return getPersistenceManagerInstance(rootElement, "/Workspace/PersistenceManager", existingProperties);
+    }
+
+    private PersistenceManager getVersioningPMInstance(Element rootElement, Properties existingProperties) {
+        return getPersistenceManagerInstance(rootElement, "/Repository/Versioning/PersistenceManager", existingProperties);
+    }
+
+    private PersistenceManager getPersistenceManagerInstance(Element rootElement, String xPathQuery, Properties existingProperties) {
         Element persistenceManagerElement = null;
+        Properties parameters = null;
         try {
             persistenceManagerElement = (Element) XPath.newInstance(xPathQuery).selectSingleNode(rootElement);
+            parameters = getParameters(persistenceManagerElement, existingProperties);
         } catch (JDOMException e) {
             logger.error("Error retrieving persistence manager class from Jackrabbit repository configuration", e);
             return null;
         }
         String persistenceManagerClassName = persistenceManagerElement.getAttributeValue("class");
-        return (BundleDbPersistenceManager) getClassInstance(persistenceManagerClassName);
+        return (PersistenceManager) getClassInstance(persistenceManagerClassName, parameters);
     }
 
-    private FileSystem getFileSystemInstance(Element rootElement, String xPathQuery) {
+    private FileSystem getFileSystemInstance(Element rootElement, String xPathQuery, Properties existingProperties) {
         Element fileSystemElement = null;
+        Properties parameters = null;
         try {
             fileSystemElement = (Element) XPath.newInstance(xPathQuery).selectSingleNode(rootElement);
+            parameters = getParameters(fileSystemElement, existingProperties);
         } catch (JDOMException e) {
             logger.error("Error retrieving file system class from Jackrabbit repository configuration", e);
             return null;
         }
         String fileSystemClassName = fileSystemElement.getAttributeValue("class");
-        return (FileSystem) getClassInstance(fileSystemClassName);
+        return (FileSystem) getClassInstance(fileSystemClassName, parameters);
     }
 
-    private Object getClassInstance(String className) {
+    private Object getClassInstance(String className, Properties parameters) {
         try {
             logger.info("Loading class " + className + "...");
             Class fileSystemClass = JackrabbitHelper.class.getClassLoader().loadClass(className);
-            return fileSystemClass.newInstance();
+            Object instance = fileSystemClass.newInstance();
+            if (parameters != null) {
+                BeanUtils.populate(instance, parameters);
+            }
+            return instance;
         } catch (ClassNotFoundException e) {
             logger.error("Error retrieving class from Jackrabbit repository configuration", e);
         } catch (InstantiationException e) {
             logger.error("Error retrieving class from Jackrabbit repository configuration", e);
         } catch (IllegalAccessException e) {
             logger.error("Error retrieving class from Jackrabbit repository configuration", e);
+        } catch (InvocationTargetException e) {
+            logger.error("Error retrieving class from Jackrabbit repository configuration", e);
         }
         return null;
     }
 
-    private DbFileSystem getDbFileSystem(Element rootElement) {
+    private FileSystem getFileSystem(Element rootElement, String xPathQuery, Properties existingProperties) {
+        FileSystem fileSystem = null;
         try {
-            dbFileSystem = (DbFileSystem) getFileSystemInstance(rootElement, "/Repository/FileSystem");
-            dbFileSystem.setConnectionFactory(connectionFactory);
-            dbFileSystem.setDriver(databaseConfiguration.getDriverClassName());
-            dbFileSystem.setUrl(databaseConfiguration.getConnectionURL());
-            dbFileSystem.setUser(databaseConfiguration.getUserName());
-            dbFileSystem.setPassword(databaseConfiguration.getPassword());
-            dbFileSystem.setSchema(databaseConfiguration.getSchema());
-            dbFileSystem.setSchemaObjectPrefix("jr_fsg_");
-            dbFileSystem.init();
+            fileSystem = getFileSystemInstance(rootElement, xPathQuery, existingProperties);
+            if (fileSystem instanceof DatabaseAware) {
+                ((DatabaseAware)fileSystem).setConnectionFactory(connectionFactory);
+            }
+            fileSystem.init();
         } catch (FileSystemException e) {
             logger.error("Error initialiting db file system", e);
         }
-        return dbFileSystem;
+        return fileSystem;
     }
 
-    public BundleDbPersistenceManager getWorkspacePM(String workspaceName) throws Exception {
+    public PersistenceManager getWorkspacePM(String workspaceName) throws Exception {
         if (workspacePMs.containsKey(workspaceName)) {
             return workspacePMs.get(workspaceName);
         }
 
+        Properties workspaceProperties = new Properties(jackrabbitProperties);
+        workspaceProperties.setProperty("wsp.name", workspaceName);
+        workspaceProperties.setProperty("wsp.home", jackrabbitHomeDir.getAbsolutePath() + File.separator + "workspaces" + File.separator + workspaceName);
+
         Element workspaceXmlRootElement = getWorkspaceXmlRootElement(jahiaInstallLocationFile, workspaceName);
 
-        LocalFileSystem localLiveFileSystem = (LocalFileSystem) getFileSystemInstance(workspaceXmlRootElement, "/Workspace/FileSystem");
-        localLiveFileSystem.setPath(jackrabbitHomeDir.getAbsolutePath() + File.separator + "workspaces" + File.separator + workspaceName);
-        PMContext livePMContext = new PMContext(jackrabbitHomeDir, localLiveFileSystem, rootNodeId, getNamespaceRegistry(), getNodeTypeRegistry(), dataStore);
+        FileSystem workspaceFileSystem = getFileSystem(workspaceXmlRootElement, "/Workspace/FileSystem", workspaceProperties);
+        PMContext livePMContext = new PMContext(jackrabbitHomeDir, workspaceFileSystem, rootNodeId, getNamespaceRegistry(), getNodeTypeRegistry(), dataStore);
 
-        BundleDbPersistenceManager workspaceDbPersistenceManager = getWorkspacePMInstance(workspaceXmlRootElement);
-        workspaceDbPersistenceManager.setConnectionFactory(connectionFactory);
-        workspaceDbPersistenceManager.setDriver(databaseConfiguration.getDriverClassName());
-        workspaceDbPersistenceManager.setUrl(databaseConfiguration.getConnectionURL());
-        workspaceDbPersistenceManager.setUser(databaseConfiguration.getUserName());
-        workspaceDbPersistenceManager.setPassword(databaseConfiguration.getPassword());
-        workspaceDbPersistenceManager.setConsistencyCheck(Boolean.toString(consistencyCheck));
-        workspaceDbPersistenceManager.setConsistencyFix(Boolean.toString(consistencyFix));
-        workspaceDbPersistenceManager.setSchemaObjectPrefix("jr_" + workspaceName + "_");
-        if (workspaceDbPersistenceManager.getDatabaseType() == null) {
-            workspaceDbPersistenceManager.setDatabaseType(databaseConfiguration.getSchema());
+        PersistenceManager workspacePM = getWorkspacePMInstance(workspaceXmlRootElement, workspaceProperties);
+        if (workspacePM instanceof DatabaseAware) {
+            ((DatabaseAware)workspacePM).setConnectionFactory(connectionFactory);
         }
-        workspaceDbPersistenceManager.init(livePMContext);
+        workspacePM.init(livePMContext);
 
-        workspacePMs.put(workspaceName, workspaceDbPersistenceManager);
+        workspacePMs.put(workspaceName, workspacePM);
 
-        return workspaceDbPersistenceManager;
+        return workspacePM;
 
     }
 
-    public BundleDbPersistenceManager getVersioningPM() throws Exception {
+    public PersistenceManager getVersioningPM() throws Exception {
         if (versioningPM != null) {
             return versioningPM;
         }
-        LocalFileSystem localVersioningFileSystem = (LocalFileSystem) getFileSystemInstance(repositoryXmlRootElement, "/Repository/Versioning/FileSystem");
-        localVersioningFileSystem.setPath(jackrabbitHomeDir.getAbsolutePath() + File.separator + "version");
+
+        Properties existingProperties = new Properties(jackrabbitProperties);
+
+        FileSystem versioningFileSystem = getFileSystem(repositoryXmlRootElement, "/Repository/Versioning/FileSystem", existingProperties);
 
         PMContext versioningPmContext = new PMContext(jackrabbitHomeDir,
-                localVersioningFileSystem,
+                versioningFileSystem,
                 rootNodeId,
                 getNamespaceRegistry(),
                 getNodeTypeRegistry(),
                 dataStore);
 
-        BundleDbPersistenceManager versioningDbPersistenceManager = getVersioningPMInstance(repositoryXmlRootElement);
-        versioningDbPersistenceManager.setConnectionFactory(connectionFactory);
-        versioningDbPersistenceManager.setDriver(databaseConfiguration.getDriverClassName());
-        versioningDbPersistenceManager.setUrl(databaseConfiguration.getConnectionURL());
-        versioningDbPersistenceManager.setUser(databaseConfiguration.getUserName());
-        versioningDbPersistenceManager.setPassword(databaseConfiguration.getPassword());
-        versioningDbPersistenceManager.setConsistencyCheck(Boolean.toString(consistencyCheck));
-        versioningDbPersistenceManager.setConsistencyFix(Boolean.toString(consistencyFix));
-        if (versioningDbPersistenceManager.getDatabaseType() == null) {
-            versioningDbPersistenceManager.setDatabaseType(databaseConfiguration.getSchema());
+        versioningPM = getVersioningPMInstance(repositoryXmlRootElement, existingProperties);
+        if (versioningPM instanceof DatabaseAware) {
+            ((DatabaseAware)versioningPM).setConnectionFactory(connectionFactory);
         }
-        versioningDbPersistenceManager.setSchemaObjectPrefix("jr_v_");
-        versioningDbPersistenceManager.init(versioningPmContext);
-
-        versioningPM = versioningDbPersistenceManager;
+        versioningPM.init(versioningPmContext);
         return versioningPM;
     }
 
-    public DataStore getDataStoreInstance(Element rootElement) {
+    public DataStore getDataStoreInstance(Element rootElement, Properties existingProperties) {
         Element dataStoreElement = null;
+        Properties parameters = null;
         try {
             dataStoreElement = (Element) XPath.newInstance("/Repository/DataStore").selectSingleNode(rootElement);
+            parameters = getParameters(dataStoreElement, existingProperties);
         } catch (JDOMException e) {
             logger.error("Error retrieving data store class from Jackrabbit repository configuration", e);
             return null;
         }
         String dataStoreClassName = dataStoreElement.getAttributeValue("class");
-        return (DataStore) getClassInstance(dataStoreClassName);
+        return (DataStore) getClassInstance(dataStoreClassName, parameters);
 
     }
 
@@ -301,7 +347,7 @@ public class JackrabbitHelper {
         if (namespaceRegistry != null) {
             return namespaceRegistry;
         }
-        namespaceRegistry = new NamespaceRegistryImpl(dbFileSystem);
+        namespaceRegistry = new NamespaceRegistryImpl(repositoryFileSystem);
         return namespaceRegistry;
     }
 
@@ -309,7 +355,7 @@ public class JackrabbitHelper {
         if (nodeTypeRegistry != null) {
             return nodeTypeRegistry;
         }
-        nodeTypeRegistry = new NodeTypeRegistry(namespaceRegistry, dbFileSystem);
+        nodeTypeRegistry = new NodeTypeRegistry(namespaceRegistry, repositoryFileSystem);
         return nodeTypeRegistry;
     }
 
