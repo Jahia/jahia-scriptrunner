@@ -74,8 +74,7 @@ Here a sample command line we will describe :
 
     ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true dumpJCRFileSystem.groovy
 
-In this example we launch the tool from the root directory of the tool's source code. The "-d"
- option allows you to specify in which directory it must look for all the librairies, classes and
+The "-d" option allows you to specify in which directory it must look for all the librairies, classes and
  database configuration to load. The "-x" options allows to specify a comma separated list of key=value
  pairs that will be passed to the script as a Properties object and that may be used to modify the
  behavior of the script. The third main argument is the Groovy script to launch within the
