@@ -138,7 +138,7 @@ The following example will check the JCR to make sure that all mix:language node
 
 In the following example we show an example of how to execute an SQL query on the database configured in Jahia.
 
-    ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
+    ./jahia-scriptrunner.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
 
 Be careful when using the script options to always put double-quotes around the statement and the separator char to make
 sure it doesn't get interpreted wrong.
