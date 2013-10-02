@@ -37,10 +37,14 @@ passing it the following bound variables :
     The JDBC connection autocommit is NOT activated, remember to always use commits to make sure the modifications
     are properly sent to the database. This is done because PostgreSQL requires non-autocommit connections to work
     with BLOBs.
+
     jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
+
     classLoader - the ClassLoader used to load all the Jahia JARs and classes
+
     scriptOptions - a Properties object with all the options passed on the command line using the -X
     parameter
+
     databaseConfiguration - a org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
     object that contains the database connection configuration (driver, url, username and password)
 
@@ -60,7 +64,7 @@ Command line format:
 
 Here a sample command line we will describe :
 
-    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true engines/jahia-6.6/src/main/scripts/dumpJCRFileSystem.groovy
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true dumpJCRFileSystem.groovy
 
 In this example we launch the tool from the root directory of the tool's source code. The "-d"
  option allows you to specify in which directory it must look for all the librairies, classes and
@@ -93,7 +97,7 @@ Checking JCR language integrity
 
 Execute an SQL query/update statement
 
-    ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" ../engines/jahia-6.6/src/main/resources/scripts/sqlExecute.groovy
+    ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
 
 A script in detail
 ------------------
