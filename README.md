@@ -64,7 +64,7 @@ Here a sample command line we will describe :
 
 In this example we launch the tool from the root directory of the tool's source code. The "-d"
  option allows you to specify in which directory it must look for all the librairies, classes and
- database configuration to load. The "-X" options allows to specify a comma separated list of key=value
+ database configuration to load. The "-x" options allows to specify a comma separated list of key=value
  pairs that will be passed to the script as a Properties object and that may be used to modify the
  behavior of the script. The third main argument is the Groovy script to launch within the
  context of the setup classloader. The given script will dump the contents of the jr_fsg_fsentry table,
