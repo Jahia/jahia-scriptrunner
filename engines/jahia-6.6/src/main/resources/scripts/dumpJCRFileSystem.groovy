@@ -44,7 +44,7 @@ while (resultSet.next()) {
                 xmlOutputter.setFormat(Format.getPrettyFormat());
                 xmlOutputter.output(jdomDocument, System.out);
             } else {
-                logger.info("--> Use option -XdumpXML=true to dump contents of XML file")
+                logger.info("--> Use option -x dumpXML=true to dump contents of XML file")
             }
         }
         data.close();
