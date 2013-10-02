@@ -83,25 +83,62 @@ In this example we launch the tool from the root directory of the tool's source 
 Alternate database configuration
 --------------------------------
 
+By default the tool will try to retrieve the database configuration from Jahia's META-INF/context.xml, but in some
+cases this might not work because either the file was not configured or it is not available. To handle cases like these,
+it is possible to provide a database configuration file called databaseConfiguration.properties that needs to be in the
+same directory as the jahia-scriptrunner and that must have content that looks like this :
+
+    driverClassName=com.mysql.jdbc.Driver
+    connectionURL=jdbc:mysql://localhost/jahia-6.6?useUnicode=true&characterEncoding=UTF-8&useServerPrepStmts=false
+    userName=jahia
+    password=jahia
+    schema=mysql
+
+The schema is the name of the databaseType that is configured in the WEB-INF/etc/repository/jackrabbit/repository.xml
+in the following section:
+
+      <DataSources>
+        <DataSource name="jahiaDS">
+          <param name="driver" value="javax.naming.InitialContext" />
+          <param name="url" value="java:comp/env/jdbc/jahia" />
+          <param name="databaseType" value="mysql" />
+        </DataSource>
+      </DataSources>
+
+Also, if you need to provide another database driver version or JAR, you will need to modify the shell scripts to add
+a classpath JVM option to point to your database driver JAR.
+
 Examples
 --------
 
-Dump the JCR database file system
+### Dump the JCR database file system
 
-Updating JCR namespace blobs
+The following example will dump the contents of the database file system configured for the JCR repository:
 
-Here's another powerful example :
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true dumpJCRFileSystem.groovy
 
-    ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ -x namespaceOperation=add,namespace=scriptTest:http://www.jahia.com/script-test updateJCRNamespaces.groovy
+### Updating JCR namespace blobs
 
 In this example we add the specified prefix and namespace uri to the DB file system namespace registry
 file ns_reg.properties and ns_idx.properties
 
-Checking JCR language integrity
+    ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ -x namespaceOperation=add,namespace=scriptTest:http://www.jahia.com/script-test updateJCRNamespaces.groovy
 
-Execute an SQL query/update statement
+
+### Checking JCR language integrity
+
+The following example will check the JCR to make sure that all mix:language nodes have a property named jcr:language
+
+    ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ checkJCRLanguageIntegrity.groovy
+
+### Execute an SQL query/update statement
+
+In the following example we show an example of how to execute an SQL query on the database configured in Jahia.
 
     ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
+
+Be careful when using the script options to always put double-quotes around the satement and the separator char to make
+sure it doesn't get interpreted wrong.
 
 A script in detail
 ------------------
