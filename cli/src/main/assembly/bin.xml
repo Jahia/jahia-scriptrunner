@@ -23,9 +23,16 @@
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>docs/**</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
                 <include>*.sh</include>
                 <include>*.bat</include>
             </includes>
+            <fileMode>0755</fileMode>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
