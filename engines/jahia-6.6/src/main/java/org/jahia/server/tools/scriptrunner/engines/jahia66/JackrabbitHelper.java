@@ -79,7 +79,7 @@ public class JackrabbitHelper {
         if (dataSource != null) {
             return dataSource;
         }
-        dataSource = connectionFactory.getDataSource(databaseConfiguration.getDriverName(), databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
+        dataSource = connectionFactory.getDataSource(databaseConfiguration.getDriverClassName(), databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
         return dataSource;
     }
 
@@ -189,7 +189,7 @@ public class JackrabbitHelper {
             fileSystemClass = JackrabbitHelper.class.getClassLoader().loadClass(fileSystemClassName);
             dbFileSystem = (DbFileSystem) fileSystemClass.newInstance();
             dbFileSystem.setConnectionFactory(connectionFactory);
-            dbFileSystem.setDriver(databaseConfiguration.getDriverName());
+            dbFileSystem.setDriver(databaseConfiguration.getDriverClassName());
             dbFileSystem.setUrl(databaseConfiguration.getConnectionURL());
             dbFileSystem.setUser(databaseConfiguration.getUserName());
             dbFileSystem.setPassword(databaseConfiguration.getPassword());
@@ -223,7 +223,7 @@ public class JackrabbitHelper {
 
         BundleDbPersistenceManager workspaceDbPersistenceManager = getPersistenceManagerClass(repositoryXmlRootElement);
         workspaceDbPersistenceManager.setConnectionFactory(connectionFactory);
-        workspaceDbPersistenceManager.setDriver(databaseConfiguration.getDriverName());
+        workspaceDbPersistenceManager.setDriver(databaseConfiguration.getDriverClassName());
         workspaceDbPersistenceManager.setUrl(databaseConfiguration.getConnectionURL());
         workspaceDbPersistenceManager.setUser(databaseConfiguration.getUserName());
         workspaceDbPersistenceManager.setPassword(databaseConfiguration.getPassword());
@@ -257,7 +257,7 @@ public class JackrabbitHelper {
 
         BundleDbPersistenceManager versioningDbPersistenceManager = getPersistenceManagerClass(repositoryXmlRootElement);
         versioningDbPersistenceManager.setConnectionFactory(connectionFactory);
-        versioningDbPersistenceManager.setDriver(databaseConfiguration.getDriverName());
+        versioningDbPersistenceManager.setDriver(databaseConfiguration.getDriverClassName());
         versioningDbPersistenceManager.setUrl(databaseConfiguration.getConnectionURL());
         versioningDbPersistenceManager.setUser(databaseConfiguration.getUserName());
         versioningDbPersistenceManager.setPassword(databaseConfiguration.getPassword());

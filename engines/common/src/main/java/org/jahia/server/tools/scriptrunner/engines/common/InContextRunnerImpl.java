@@ -1,5 +1,6 @@
 package org.jahia.server.tools.scriptrunner.engines.common;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.jahia.server.tools.scriptrunner.common.InContextRunner;
 import org.jdom.Element;
 import org.jdom.JDOMException;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.script.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -70,10 +72,40 @@ public class InContextRunnerImpl implements InContextRunner {
     }
 
     public void loadDatabaseConfiguration() {
+        File alternateDBConfFile = new File("databaseConfiguration.properties");
+        if (alternateDBConfFile.exists()) {
+            Properties alternateDBConfigurationProperties = new Properties();
+            FileInputStream alternateDBConfPropStream = null;
+            try {
+                alternateDBConfPropStream = new FileInputStream(alternateDBConfFile);
+                alternateDBConfigurationProperties.load(alternateDBConfPropStream);
+                databaseConfiguration = new DatabaseConfiguration();
+                BeanUtils.populate(databaseConfiguration, alternateDBConfigurationProperties);
+                logger.info("Alternate database configuration loaded successfully from file " + alternateDBConfFile);
+                return;
+            } catch (FileNotFoundException e) {
+                logger.error("Error loading alternate database configuration file " + alternateDBConfFile, e);
+            } catch (IOException e) {
+                logger.error("Error loading alternate database configuration file " + alternateDBConfFile, e);
+            } catch (InvocationTargetException e) {
+                logger.error("Error loading alternate database configuration file " + alternateDBConfFile, e);
+            } catch (IllegalAccessException e) {
+                logger.error("Error loading alternate database configuration file " + alternateDBConfFile, e);
+            } finally {
+                if (alternateDBConfPropStream != null) {
+                    try {
+                        alternateDBConfPropStream.close();
+                    } catch (IOException e) {
+                        // we simply ignore the close exception
+                    }
+                }
+            }
+        }
+
         SAXBuilder saxBuilder = new SAXBuilder();
-        InputStreamReader fileReader = null;
+        FileReader fileReader = null;
         try {
-            fileReader = new InputStreamReader(new FileInputStream(new File(jahiaInstallLocationFile, "META-INF"+File.separator+"context.xml")));
+            fileReader = new FileReader(new File(jahiaInstallLocationFile, "META-INF"+File.separator+"context.xml"));
             org.jdom.Document jdomDocument = saxBuilder.build(fileReader);
             Element root = jdomDocument.getRootElement();
 
@@ -90,25 +122,33 @@ public class InContextRunnerImpl implements InContextRunner {
             logger.error("Error loading database configuration", e);
         } catch (IOException e) {
             logger.error("Error loading database configuration", e);
+        } finally {
+            if (fileReader != null) {
+                try {
+                    fileReader.close();
+                } catch (IOException e) {
+                    // we simply ignore the close exception
+                }
+            }
         }
     };
 
     public void getJDBCConnection(DatabaseConfiguration databaseConfiguration) {
         try {
-            Driver driver = (Driver) Class.forName(databaseConfiguration.getDriverName(), true, classLoader).newInstance();
+            Driver driver = (Driver) Class.forName(databaseConfiguration.getDriverClassName(), true, classLoader).newInstance();
             DriverManager.registerDriver(driver);
 
             connection = DriverManager.getConnection(databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
             connection.setAutoCommit(false);
-            logger.info("Connection to database established using driver="+databaseConfiguration.getDriverName()+" url=" + databaseConfiguration.getConnectionURL() + " and user=" + databaseConfiguration.getUserName());
+            logger.info("Connection to database established using driver="+databaseConfiguration.getDriverClassName()+" url=" + databaseConfiguration.getConnectionURL() + " and user=" + databaseConfiguration.getUserName());
         } catch (ClassNotFoundException e) {
-            logger.error("Error loading database driver " + databaseConfiguration.getDriverName(), e);
+            logger.error("Error loading database driver " + databaseConfiguration.getDriverClassName(), e);
         } catch (SQLException e) {
             logger.error("Error connecting to the database", e);
         } catch (InstantiationException e) {
-            logger.error("Error loading database driver" + databaseConfiguration.getDriverName(), e);
+            logger.error("Error loading database driver" + databaseConfiguration.getDriverClassName(), e);
         } catch (IllegalAccessException e) {
-            logger.error("Error loading database driver" + databaseConfiguration.getDriverName(), e);
+            logger.error("Error loading database driver" + databaseConfiguration.getDriverClassName(), e);
         }
     }
 
