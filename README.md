@@ -12,12 +12,15 @@ include :
 - an incomplete namespace registry (possibly due to some invalid deployments, no longer possible
 with recent version of Jackrabbit or Jahia)
 - problems with database blobs than cannot be corrected through simple SQL queries
+- other database issues such as tables that were not properly purged after a re-install because DROP TABLE permissions
+were not given to the database user
 
 This tool is really good for all the problems that may involve serialized Java classes stored in
 BLOBs since in theory it can load and modify these blobs using custom scripts. Since it uses a
 class loader that gives you access to all the Jahia libraries and classes from the installed
 product, the possibilities are endless as to what you may do (start a part of the system, re-use
-model classes, etc...).
+model classes, etc...). It can also be used to easily execute SQL statements against the database
+using the configuration already setup in the Jahia server installation.
 
 How it works
 ------------
@@ -28,7 +31,8 @@ from the Jahia installation.
 
 From this classloader it will load the main core of the utility that will then load the database
 configuration from the META-INF/context.xml file (so for the moment only Tomcat installations are
-supported) and create a connection to the database.
+supported) and create a connection to the database. It is also possible to configure the connection to
+the database using a properties file (see the Alternate database configuration section below).
 
 Once all this is done it will then load and execute the Groovy script specified on the command line,
 passing it the following bound variables :
@@ -137,7 +141,7 @@ In the following example we show an example of how to execute an SQL query on th
 
     ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
 
-Be careful when using the script options to always put double-quotes around the satement and the separator char to make
+Be careful when using the script options to always put double-quotes around the statement and the separator char to make
 sure it doesn't get interpreted wrong.
 
 A script in detail
