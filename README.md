@@ -72,6 +72,16 @@ In this example we launch the tool from the root directory of the tool's source 
  namespace mapping and indexes, or the custom nodetypes XML descriptor. The -x dumpXML=true flag is used
  to specify that we want to dump the XML file, by default XML files are not dumped.
 
+Alternate database configuration
+--------------------------------
+
+Examples
+--------
+
+Dump the JCR database file system
+
+Updating JCR namespace blobs
+
 Here's another powerful example :
 
     ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ -x namespaceOperation=add,namespace=scriptTest:http://www.jahia.com/script-test updateJCRNamespaces.groovy
@@ -79,3 +89,63 @@ Here's another powerful example :
 In this example we add the specified prefix and namespace uri to the DB file system namespace registry
 file ns_reg.properties and ns_idx.properties
 
+Checking JCR language integrity
+
+Execute an SQL query/update statement
+
+    ./jahia-scriptrunner-debug.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" ../engines/jahia-6.6/src/main/resources/scripts/sqlExecute.groovy
+
+A script in detail
+------------------
+
+Here is the source code for the checkJCRLanguageIntegrity.groovy Groovy script, provided as an example of the power
+offered by the tool. It uses a helper class called JackrabbitHelper that makes it easy to retrieve configuration and
+persistence manager instances.
+
+    package scripts
+
+    import org.apache.jackrabbit.core.id.NodeId
+    import org.apache.jackrabbit.core.persistence.pool.BundleDbPersistenceManager
+    import org.apache.jackrabbit.core.state.NodeState
+    import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
+    import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
+    import org.slf4j.Logger
+    import org.slf4j.LoggerFactory
+
+    Logger logger = LoggerFactory.getLogger("checkJCRLanguageIntegrity.groovy");
+
+    DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
+
+    File jahiaInstallLocation = (File) jahiaInstallLocationFile;
+
+    JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jahiaInstallLocation, dbConfiguration, false, false);
+
+    logger.info("Checking default workspace bundles...");
+
+    BundleDbPersistenceManager defaultDbPersistenceManager = jackrabbitHelper.getWorkspacePM("default");
+    checkLanguageIntegrity(defaultDbPersistenceManager, jackrabbitHelper, logger);
+
+    logger.info("Checking live workspace bundles...");
+    BundleDbPersistenceManager liveDbPersistenceManager = jackrabbitHelper.getWorkspacePM("live");
+    checkLanguageIntegrity(liveDbPersistenceManager, jackrabbitHelper, logger);
+
+    logger.info("Checking versioning bundles...");
+    BundleDbPersistenceManager versioningDbPersistenceManager = jackrabbitHelper.getVersioningPM();
+    checkLanguageIntegrity(versioningDbPersistenceManager, jackrabbitHelper, logger);
+
+    private void checkLanguageIntegrity(BundleDbPersistenceManager defaultDbPersistenceManager, JackrabbitHelper jackrabbitHelper, Logger logger) {
+        Iterable<NodeId> allNodeIds = defaultDbPersistenceManager.getAllNodeIds(null, 0);
+        Iterator<NodeId> allNodeIdIterator = allNodeIds.iterator();
+        int count = 0;
+        while (allNodeIdIterator.hasNext()) {
+            NodeId nodeId = allNodeIdIterator.next();
+            NodeState nodeState = defaultDbPersistenceManager.load(nodeId);
+            if (jackrabbitHelper.isNodeType(nodeState, "http://www.jcp.org/jcr/mix/1.0", "language")) {
+                if (!jackrabbitHelper.hasProperty(nodeState, "http://www.jcp.org/jcr/1.0", "language")) {
+                    logger.warn("Node " + nodeState.getId() + " is of type mix:language but is missing a jcr:language property !");
+                }
+            }
+            count++;
+        }
+        logger.info("Loaded " + count + " node states");
+    }
