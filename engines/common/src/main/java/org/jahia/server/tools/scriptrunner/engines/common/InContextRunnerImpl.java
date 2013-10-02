@@ -81,6 +81,7 @@ public class InContextRunnerImpl implements InContextRunner {
                 alternateDBConfigurationProperties.load(alternateDBConfPropStream);
                 databaseConfiguration = new DatabaseConfiguration();
                 BeanUtils.populate(databaseConfiguration, alternateDBConfigurationProperties);
+                System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
                 logger.info("Alternate database configuration loaded successfully from file " + alternateDBConfFile);
                 return;
             } catch (FileNotFoundException e) {
