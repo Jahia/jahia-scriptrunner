@@ -90,14 +90,6 @@ public class JackrabbitHelper {
         this.rootNodeId = loadRootNodeId(repositoryFileSystem);
     }
 
-    public DataSource getDataSource() throws Exception {
-        if (dataSource != null) {
-            return dataSource;
-        }
-        dataSource = connectionFactory.getDataSource(databaseConfiguration.getDriverClassName(), databaseConfiguration.getConnectionURL(), databaseConfiguration.getUserName(), databaseConfiguration.getPassword());
-        return dataSource;
-    }
-
     private NodeId loadRootNodeId(org.apache.jackrabbit.core.fs.FileSystem fileSystem) throws RepositoryException {
         try {
             FileSystemResource uuidFile = new FileSystemResource(
