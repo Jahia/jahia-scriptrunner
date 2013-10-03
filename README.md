@@ -134,7 +134,7 @@ The following example will check the JCR to make sure that all mix:language node
 
     ./jahia-scriptrunner.sh -d /Applications/Ent-Jahia_xCM_v6.6.0.0/tomcat/webapps/ROOT/ checkJCRLanguageIntegrity.groovy
 
-### Execute an SQL query/update statement
+### Execute an SQL query/update statement or an SQL script file
 
 In the following example we show an example of how to execute an SQL query on the database configured in Jahia.
 
