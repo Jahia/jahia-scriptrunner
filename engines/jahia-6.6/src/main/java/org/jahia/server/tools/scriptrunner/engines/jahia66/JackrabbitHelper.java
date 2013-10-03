@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
-import javax.sql.DataSource;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -55,7 +54,6 @@ public class JackrabbitHelper {
     private Element repositoryXmlRootElement;
     private DataStore dataStore;
     private NodeId rootNodeId;
-    private DataSource dataSource;
 
     private PersistenceManager versioningPM = null;
     private Map<String, PersistenceManager> workspacePMs = new HashMap<String, PersistenceManager>();
@@ -72,6 +70,8 @@ public class JackrabbitHelper {
         this.consistencyFix = consistencyFix;
         this.jackrabbitHomeDir = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator + "repository");
         this.repositoryXmlRootElement = getRepositoryXmlRootElement(jahiaInstallLocationFile);
+        Element dataSourceElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource").selectSingleNode(repositoryXmlRootElement);
+        String dataSourceName = dataSourceElement.getAttributeValue("name");
         DataSourceConfig dataSourceConfig = new DataSourceConfig();
         Properties dataSourceProperties = new Properties();
         dataSourceProperties.setProperty(DataSourceConfig.DRIVER, databaseConfiguration.getDriverClassName());
@@ -79,7 +79,7 @@ public class JackrabbitHelper {
         dataSourceProperties.setProperty(DataSourceConfig.USER, databaseConfiguration.getUserName());
         dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, databaseConfiguration.getPassword());
         dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, databaseConfiguration.getDatabaseType());
-        dataSourceConfig.addDataSourceDefinition("jahiaDS", dataSourceProperties);
+        dataSourceConfig.addDataSourceDefinition(dataSourceName, dataSourceProperties);
         jackrabbitProperties.setProperty("rep.home", jackrabbitHomeDir.getAbsolutePath());
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyCheck", Boolean.toString(consistencyCheck));
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyFix", Boolean.toString(consistencyFix));
