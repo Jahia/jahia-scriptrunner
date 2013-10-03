@@ -66,10 +66,6 @@
             <id>jahia-enterprise-snapshots</id>
             <url>https://devtools.jahia.com/nexus/content/repositories/jahia-enterprise-snapshots</url>
         </snapshotRepository>
-        <site>
-            <id>jahia.website</id>
-            <url>file://${jahia.site.path}</url>
-        </site>
     </distributionManagement>
 
     <modules>
