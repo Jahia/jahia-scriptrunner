@@ -75,7 +75,6 @@ public class ScriptRunner {
         CommandLineParser parser = new PosixParser();
         try {
             displayStartupBanner();
-            displayWarning();
 
             userHomeDir = new File(System.getProperty("user.home"), ".jahia-scriptrunner");
 
@@ -224,7 +223,6 @@ public class ScriptRunner {
             String scriptName = null;
             InputStream scriptStream = null;
             if (scriptFile != null && !scriptFile.exists()) {
-                logger.info("Script file not found on file system at specified path, searching for built-in scripts...");
                 InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/" + command);
                 if (scriptClassLoaderStream == null) {
                     logger.error("Couldn't find a built-in script named" + command + ", aborting !");
@@ -270,24 +268,6 @@ public class ScriptRunner {
                         "==========================================================================================\n";
         System.out.println(message);
     }
-
-    public static void displayWarning() {
-        String warningMessage =
-                "IMPORTANT WARNINGS:\n" +
-                        "--------------------------------------------------------------------------\n" +
-                        "Please:\n" +
-                        "- Backup your jahia installation before running this fix applier\n" +
-                        "- Stop jahia before backing up and running the fix applier\n" +
-                        "- Run a pre-production test first\n" +
-                        "--------------------------------------------------------------------------\n" +
-                        "Disclaimer : this tool is designed and tested with default installs. If \n" +
-                        "the install has been heavily modified, you might need to apply some \n" +
-                        "modifications manually (the tool will inform you which files it couldn't\n" +
-                        "merge automatically.\n" +
-                        "--------------------------------------------------------------------------\n";
-        System.out.println(warningMessage);
-    }
-
 
     public static Version getScriptRunnerVersion() throws Exception {
         if (scriptRunnerVersion != null) {

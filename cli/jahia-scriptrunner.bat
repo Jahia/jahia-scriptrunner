@@ -1,1 +1,1 @@
-java -jar target/jahia-scriptrunner-1.0-SNAPSHOT-with-deps.jar %*
+java -classpath target/jahia-scriptrunner-1.0-SNAPSHOT-with-deps.jar org.jahia.server.tools.scriptrunner.ScriptRunner %*

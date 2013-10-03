@@ -57,6 +57,10 @@ public class InContextRunnerImpl implements InContextRunner {
             extension = scriptName.substring(lastDotPos+1);
         }
         ScriptEngine engine = factory.getEngineByExtension(extension);
+        if (engine == null) {
+            logger.error("Couln't find a script engine for script extension ." + extension);
+            return;
+        }
         try {
             Bindings bindings = new SimpleBindings();
             bindings.put("jdbcConnection", connection);
@@ -104,6 +108,8 @@ public class InContextRunnerImpl implements InContextRunner {
         }
 
         SAXBuilder saxBuilder = new SAXBuilder();
+        saxBuilder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd",
+                false);
         FileReader fileReader = null;
         try {
             fileReader = new FileReader(new File(jahiaInstallLocationFile, "META-INF"+File.separator+"context.xml"));

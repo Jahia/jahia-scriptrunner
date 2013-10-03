@@ -144,6 +144,8 @@ public class JackrabbitHelper {
     private Element getXmlRootElement(File xmlFile) {
         FileReader fileReader = null;
         SAXBuilder saxBuilder = new SAXBuilder();
+        saxBuilder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd",
+                false);
         try {
             fileReader = new FileReader(xmlFile);
             org.jdom.Document jdomDocument = saxBuilder.build(fileReader);
