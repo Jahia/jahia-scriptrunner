@@ -111,6 +111,13 @@ in the following section:
 Also, if you need to provide another database driver version or JAR, you will need to modify the shell scripts to add
 a classpath JVM option to point to your database driver JAR.
 
+Here is an example of using the tool with a custom driver JAR :
+
+    java -classpath mysql-connector-java-5.1.26.jar:target/jahia-scriptrunner-1.0-SNAPSHOT-with-deps.jar org.jahia.server.tools.scriptrunner.ScriptRunner -x scriptFile=/Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT/WEB-INF/var/db/sql/schema/mysql/jackrabbit-schema.sql -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT sqlExecute.groovy
+
+For practical reasons you might want to copy the jahia-scriptrunner.sh/.bat script and add your driver JARs to the
+classpath.
+
 Examples
 --------
 
