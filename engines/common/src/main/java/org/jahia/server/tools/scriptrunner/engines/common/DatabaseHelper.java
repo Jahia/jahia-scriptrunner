@@ -4,10 +4,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -158,5 +155,103 @@ public class DatabaseHelper {
             executeSqlUpdate(sqlStatement, connection);
         }
     }
+
+    /**
+     * Get a Iterator containing all lines of the sql runtime from a
+     * database script. This database script is getted in parameter like
+     * a File object. The method use the BufferedReader object on a
+     * FileReader object instanciate on the script file name.
+     * @author  Alexandre Kraft
+     *
+     * @param   fileObject   File object of the database script file.
+     * @return  Iterator containing all lines of the database script.
+     */
+    public static List<String> getScriptFileStatements( File fileObject ) throws IOException {
+        List<String> scriptsRuntimeList  = new ArrayList<String>();
+
+        BufferedReader buffered     = new BufferedReader( new FileReader(fileObject.getPath()) );
+        String          buffer       = "";
+
+        StringBuffer curSQLStatement = new StringBuffer();
+        while((buffer = buffered.readLine()) != null)
+        {
+            if (buffer != null && buffer.trim().equals("/")) {
+                // '/' indicates the end of the PL/SQL script for Oracle -> skip it here
+                continue;
+            }
+
+            // let's check for comments.
+            int commentPos = buffer.indexOf("#");
+            if ((commentPos != -1) && (!isInQuotes(buffer, commentPos))) {
+                buffer = buffer.substring(0, commentPos);
+            }
+            commentPos = buffer.indexOf("//");
+            if ((commentPos != -1) && (!isInQuotes(buffer, commentPos))) {
+                buffer = buffer.substring(0, commentPos);
+            }
+            commentPos = buffer.indexOf("/*");
+            if ((commentPos != -1) && (!isInQuotes(buffer, commentPos))) {
+                buffer = buffer.substring(0, commentPos);
+            }
+            commentPos = buffer.indexOf("REM ");
+            if ((commentPos != -1) && (!isInQuotes(buffer, commentPos))) {
+                buffer = buffer.substring(0, commentPos);
+            }
+            commentPos = buffer.indexOf("--");
+            if ((commentPos != -1) && (!isInQuotes(buffer, commentPos))) {
+                buffer = buffer.substring(0, commentPos);
+            }
+
+            // is the line after comment removal ?
+            if (buffer.trim().length() == 0) {
+                continue;
+            }
+
+            buffer = buffer.trim();
+
+            if (buffer.endsWith(";")) {
+                // found seperator char in the script file, finish constructing
+                curSQLStatement.append(buffer.substring(0, buffer.endsWith("end;") ? buffer.length() : buffer.length()-1));
+                String sqlStatement = curSQLStatement.toString().trim();
+                if (!"".equals(sqlStatement)) {
+                    // System.out.println("Found statement [" + sqlStatement + "]");
+                    scriptsRuntimeList.add(sqlStatement);
+                }
+                curSQLStatement = new StringBuffer();
+            } else {
+                curSQLStatement.append(buffer);
+                curSQLStatement.append('\n');
+            }
+
+        }
+        String sqlStatement = curSQLStatement.toString().trim();
+        if (!"".equals(sqlStatement)) {
+            scriptsRuntimeList.add(sqlStatement);
+        }
+        buffered.close();
+
+        return scriptsRuntimeList;
+    }
+
+    private static boolean isInQuotes(String sqlStatement, int pos) {
+        if (pos < 0) {
+            return false;
+        }
+        String beforeStr = sqlStatement.substring(0, pos);
+        int quoteCount = 0;
+        int curPos = 0;
+        int quotePos = beforeStr.indexOf("'");
+        while (quotePos != -1) {
+            quoteCount++;
+            curPos = quotePos +1;
+            quotePos = beforeStr.indexOf("'", curPos);
+        }
+        if (quoteCount % 2 == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 
 }

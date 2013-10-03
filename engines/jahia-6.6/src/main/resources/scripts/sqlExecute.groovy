@@ -11,20 +11,33 @@ Logger logger = LoggerFactory.getLogger("sqlExecute.groovy");
 Connection connection = (Connection) jdbcConnection;
 
 Properties groovyScriptOptions = (Properties) scriptOptions;
-if (!groovyScriptOptions.containsKey("statement")) {
-    logger.error("Missing statement parameter, please specify an SQL statement using the -x statement=\"SQL_STATEMENT\" parameter");
+if (!groovyScriptOptions.containsKey("statement") && !groovyScriptOptions.containsKey("scriptFile")) {
+    logger.error("Missing statement parameter, please specify an SQL statement using the -x statement=\"SQL_STATEMENT\" parameter or -x scriptFile=SCRIPT_PATH");
     return;
 }
 
 File csvOutputFile = null;
 char csvSeparatorChar = ',';
-if (groovyScriptOptions.containsKey("csvOutput")) {
+if (groovyScriptOptions.getProperty("csvOutput") != null) {
     csvOutputFile = new File(groovyScriptOptions.getProperty("csvOutput"));
-    if (groovyScriptOptions.containsKey("csvSeparatorChar")) {
+    if (groovyScriptOptions.getProperty("csvSeparatorChar") != null) {
         csvSeparatorChar = groovyScriptOptions.getProperty("csvSeparatorChar").charAt(0);
     }
 }
 
-String sqlStatement = groovyScriptOptions.getProperty("statement").trim();
-DatabaseHelper.executeSql(sqlStatement, connection, csvOutputFile, csvSeparatorChar);
+if (groovyScriptOptions.getProperty("statement") != null) {
+    String sqlStatement = groovyScriptOptions.getProperty("statement").trim();
+    DatabaseHelper.executeSql(sqlStatement, connection, csvOutputFile, csvSeparatorChar);
+} else if (groovyScriptOptions.getProperty("scriptFile") != null) {
+    String scriptFilePath = groovyScriptOptions.getProperty("scriptFile").trim();
+    File scriptFile = new File(scriptFilePath);
+    if (!scriptFile.exists()) {
+        logger.error("Couldn't find script file " + scriptFile);
+        return;
+    }
+    List<String> scriptStatements = DatabaseHelper.getScriptFileStatements(scriptFile);
+    for (String sqlStatement : scriptStatements) {
+        DatabaseHelper.executeSql(sqlStatement, connection, csvOutputFile, csvSeparatorChar);
+    }
 
+}
