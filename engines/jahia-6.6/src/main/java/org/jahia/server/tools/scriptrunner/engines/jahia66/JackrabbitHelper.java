@@ -86,6 +86,9 @@ public class JackrabbitHelper {
         connectionFactory.registerDataSources(dataSourceConfig);
         this.repositoryFileSystem = getFileSystem(repositoryXmlRootElement, "/Repository/FileSystem", jackrabbitProperties);
         this.dataStore = getDataStoreInstance(repositoryXmlRootElement, jackrabbitProperties);
+        if (dataStore instanceof DatabaseAware) {
+            ((DatabaseAware) dataStore).setConnectionFactory(connectionFactory);
+        }
         dataStore.init(jackrabbitHomeDir.getAbsolutePath());
         this.rootNodeId = loadRootNodeId(repositoryFileSystem);
     }
