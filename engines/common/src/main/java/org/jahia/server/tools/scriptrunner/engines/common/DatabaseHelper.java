@@ -59,8 +59,8 @@ public class DatabaseHelper {
 
     public static void executeSqlQuery(String sqlQuery, Connection connection, File csvOutputFile, char separatorChar) throws SQLException, IOException {
         long startTime = System.currentTimeMillis();
-        PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
-        ResultSet rs = preparedStatement.executeQuery();
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery(sqlQuery);
         ResultSetMetaData rsMetaData = rs.getMetaData();
         int resultCount = 0;
         int columnCount = rsMetaData.getColumnCount();
@@ -98,7 +98,7 @@ public class DatabaseHelper {
             }
         }
         rs.close();
-        preparedStatement.close();
+        statement.close();
         connection.commit();
         long queryTime = System.currentTimeMillis() - startTime;
         outputResultSet(columnWidths, lines);
@@ -140,9 +140,9 @@ public class DatabaseHelper {
 
     public static void executeSqlUpdate(String sqlUpdate, Connection connection) throws SQLException {
         long startTime = System.currentTimeMillis();
-        PreparedStatement preparedStatement = connection.prepareStatement(sqlUpdate);
-        int rowsUpdated = preparedStatement.executeUpdate();
-        preparedStatement.close();
+        Statement statement = connection.createStatement();
+        int rowsUpdated = statement.executeUpdate(sqlUpdate);
+        statement.close();
         connection.commit();
         long queryTime = System.currentTimeMillis() - startTime;
         logger.info("Query " + sqlUpdate + " updated " + rowsUpdated + " rows and executed in " + queryTime + "ms.");
