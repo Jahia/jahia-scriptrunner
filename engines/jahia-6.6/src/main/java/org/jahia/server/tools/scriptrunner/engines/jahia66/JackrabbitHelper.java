@@ -378,4 +378,16 @@ public class JackrabbitHelper {
             return false;
         }
     }
+
+    public FileSystem getRepositoryFileSystem() {
+        return repositoryFileSystem;
+    }
+
+    public DataStore getDataStore() {
+        return dataStore;
+    }
+
+    public NodeId getRootNodeId() {
+        return rootNodeId;
+    }
 }

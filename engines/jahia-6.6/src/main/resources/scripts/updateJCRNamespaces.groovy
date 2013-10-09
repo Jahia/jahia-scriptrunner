@@ -1,6 +1,9 @@
 package scripts
 
 import org.apache.commons.io.IOUtils
+import org.apache.jackrabbit.core.fs.FileSystemResource
+import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
+import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -13,6 +16,19 @@ Logger logger = LoggerFactory.getLogger("updateJCRNamespaces.groovy");
 Connection connection = (Connection) jdbcConnection;
 
 // first let's load the name space files into memory
+
+DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
+
+File jahiaInstallLocation = (File) jahiaInstallLocationFile;
+File jackrabbitConfigFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
+File jackrabbitHomeDir = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "var" + File.separator + "repository");;
+
+JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jackrabbitConfigFile, jackrabbitHomeDir, dbConfiguration, false, false);
+
+FileSystemResource namespaceRegistryFile = new FileSystemResource(
+        jackrabbitHelper.getRepositoryFileSystem(), "/namespaces/ns_reg.properties");
+
+namespaceRegistryFile.
 
 InputStream nsRegStream = getDBFile("/namespaces", "ns_reg.properties", connection);
 Properties nsReg = new Properties();
