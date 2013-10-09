@@ -13,8 +13,6 @@ import java.sql.ResultSet
 
 Logger logger = LoggerFactory.getLogger("updateJCRNamespaces.groovy");
 
-Connection connection = (Connection) jdbcConnection;
-
 // first let's load the name space files into memory
 
 DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
@@ -30,12 +28,10 @@ FileSystemResource namespaceRegistryFile = new FileSystemResource(
 FileSystemResource namespaceIndexFile = new FileSystemResource(
         jackrabbitHelper.getRepositoryFileSystem(), "/namespaces/ns_idx.properties");
 
-// InputStream nsRegStream = getDBFile("/namespaces", "ns_reg.properties", connection);
 InputStream nsRegStream = namespaceRegistryFile.getInputStream();
 Properties nsReg = new Properties();
 nsReg.load(nsRegStream);
 nsRegStream.close();
-// InputStream nsIdxStream = getDBFile("/namespaces", "ns_idx.properties", connection);
 InputStream nsIdxStream = namespaceIndexFile.getInputStream();
 Properties nsIdx = new Properties();
 nsIdx.load(nsIdxStream);
@@ -87,76 +83,13 @@ if (groovyScriptOptions.containsKey("namespaceOperation") &&
 
 // finally let's save them back to the DB file system.
 
-ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-nsReg.store(byteArrayOutputStream, null);
-byte[] byteArray = byteArrayOutputStream.toByteArray();
-ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
-int count = setDBFile(true, "/namespaces", "ns_reg.properties", System.currentTimeMillis(), byteArray.length, byteArrayInputStream, connection);
-logger.info("Updated " + count + " DB file system entries");
-byteArrayInputStream.close();
+OutputStream outputStream = namespaceRegistryFile.getOutputStream();
+nsReg.store(outputStream, null);
+outputStream.close();
 
-byteArrayOutputStream = new ByteArrayOutputStream();
-nsIdx.store(byteArrayOutputStream, null);
-byteArray = byteArrayOutputStream.toByteArray();
-byteArrayInputStream = new ByteArrayInputStream(byteArray);
-count = setDBFile(true, "/namespaces", "ns_idx.properties", System.currentTimeMillis(), byteArray.length, byteArrayInputStream, connection);
-logger.info("Updated " + count + " DB file system entries");
-byteArrayInputStream.close();
-
-private InputStream getDBFile(String path, String name, Connection connection) {
-    PreparedStatement preparedStatement = connection.prepareStatement("SELECT FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH FROM JR_FSG_FSENTRY WHERE FSENTRY_PATH=? AND FSENTRY_NAME=?");
-    preparedStatement.setString(1, path);
-    preparedStatement.setString(2, name);
-
-    ResultSet resultSet = preparedStatement.executeQuery();
-
-    InputStream result = null;
-    while (resultSet.next()) {
-        long lastModified = resultSet.getLong(2);
-        Date lastModifiedDate = new Date(lastModified);
-        long length = resultSet.getLong(3);
-        if (length > 0) {
-            InputStream data = resultSet.getBinaryStream(1);
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            IOUtils.copy(data, byteArrayOutputStream);
-            result = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        }
-    }
-
-    resultSet.close();
-    preparedStatement.close();
-
-    connection.commit();
-
-    return result;
-}
-
-private int setDBFile(boolean alreadyExists, String path, String name, long lastModifiedTime, long length, InputStream inputStream, Connection connection) {
-    PreparedStatement preparedStatement = null;
-    int count = 0;
-
-    if (alreadyExists) {
-        preparedStatement = connection.prepareStatement("UPDATE JR_FSG_FSENTRY SET FSENTRY_DATA=?, FSENTRY_LASTMOD=?, FSENTRY_LENGTH=? WHERE FSENTRY_PATH=? AND FSENTRY_NAME=?");
-        preparedStatement.setBinaryStream(1, inputStream, (int) length);
-        preparedStatement.setLong(2, lastModifiedTime);
-        preparedStatement.setLong(3, length);
-        preparedStatement.setString(4, path);
-        preparedStatement.setString(5, name);
-        count = preparedStatement.executeUpdate()
-    } else {
-        preparedStatement = connection.prepareStatement("INSERT INTO JR_FSG_FSENTRY (FSENTRY_PATH, FSENTRY_NAME, FSENTRY_DATA, FSENTRY_LASTMOD, FSENTRY_LENGTH) VALUES (?, ?, ?, ?, ?)");
-        preparedStatement.setString(1, path);
-        preparedStatement.setString(2, name);
-        preparedStatement.setBinaryStream(3, inputStream, (int) length);
-        preparedStatement.setLong(4, lastModifiedTime);
-        preparedStatement.setLong(5, length);
-        count = preparedStatement.executeUpdate();
-    }
-
-    connection.commit();
-
-    return count;
-}
+outputStream = namespaceIndexFile.getOutputStream();
+nsIdx.store(outputStream, null);
+outputStream.close();
 
 private Integer getIndex(Properties nsIdx, String uri) {
     // Need to use only 24 bits, since that's what
