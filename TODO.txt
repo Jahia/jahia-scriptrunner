@@ -1,0 +1,2 @@
+- Integrate with EHCache disk serialization to be able to perform analysis, queries and possibly modification on EHCache serialized entries
+- Integrate with Lucene disk indexes to be able to perform direct modifications and queries on Lucene indexes.

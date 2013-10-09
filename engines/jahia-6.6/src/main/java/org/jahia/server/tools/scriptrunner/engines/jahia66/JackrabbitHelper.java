@@ -41,7 +41,7 @@ public class JackrabbitHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JackrabbitHelper.class);
 
-    private File jahiaInstallLocationFile;
+    private File jackrabbitConfigFile;
     private File jackrabbitHomeDir;
     private DatabaseConfiguration databaseConfiguration;
     private ConnectionFactory connectionFactory = new ConnectionFactory();
@@ -63,13 +63,13 @@ public class JackrabbitHelper {
 
     private Properties jackrabbitProperties = new Properties();
 
-    public JackrabbitHelper(File jahiaInstallLocationFile, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException, JDOMException {
-        this.jahiaInstallLocationFile = jahiaInstallLocationFile;
+    public JackrabbitHelper(File jackrabbitConfigFile, File jackrabbitHomeDir, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException, JDOMException {
+        this.jackrabbitConfigFile = jackrabbitConfigFile;
+        this.jackrabbitHomeDir = jackrabbitHomeDir;
         this.databaseConfiguration = databaseConfiguration;
         this.consistencyCheck = consistencyCheck;
         this.consistencyFix = consistencyFix;
-        this.jackrabbitHomeDir = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator + "repository");
-        this.repositoryXmlRootElement = getRepositoryXmlRootElement(jahiaInstallLocationFile);
+        this.repositoryXmlRootElement = getRepositoryXmlRootElement();
         Element dataSourceElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource").selectSingleNode(repositoryXmlRootElement);
         String dataSourceName = dataSourceElement.getAttributeValue("name");
         DataSourceConfig dataSourceConfig = new DataSourceConfig();
@@ -129,9 +129,8 @@ public class JackrabbitHelper {
         }
     }
 
-    private Element getRepositoryXmlRootElement(File jahiaInstallLocation) throws JDOMException {
-        File jackrabbitRepositoryXmlFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
-        Element rootElement = getXmlRootElement(jackrabbitRepositoryXmlFile);
+    private Element getRepositoryXmlRootElement() throws JDOMException {
+        Element rootElement = getXmlRootElement(jackrabbitConfigFile);
         if (databaseConfiguration.getDatabaseType() == null) {
             Element databaseTypeElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource/param[@name='databaseType']").selectSingleNode(rootElement);
             databaseConfiguration.setDatabaseType(databaseTypeElement.getAttributeValue("value"));
@@ -139,9 +138,9 @@ public class JackrabbitHelper {
         return rootElement;
     }
 
-    private Element getWorkspaceXmlRootElement(File jahiaInstallLocation, String workspaceName) {
-        File jackrabbitRepositoryXmlFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "var" + File.separator + "repository" + File.separator + "workspaces" + File.separator + workspaceName + File.separator + "workspace.xml");
-        return getXmlRootElement(jackrabbitRepositoryXmlFile);
+    private Element getWorkspaceXmlRootElement(String workspaceName) {
+        File workspaceXmlConfigFile = new File(jackrabbitHomeDir, "workspaces" + File.separator + workspaceName + File.separator + "workspace.xml");
+        return getXmlRootElement(workspaceXmlConfigFile);
     }
 
     private Element getXmlRootElement(File xmlFile) {
@@ -280,7 +279,7 @@ public class JackrabbitHelper {
         workspaceProperties.setProperty("wsp.name", workspaceName);
         workspaceProperties.setProperty("wsp.home", jackrabbitHomeDir.getAbsolutePath() + File.separator + "workspaces" + File.separator + workspaceName);
 
-        Element workspaceXmlRootElement = getWorkspaceXmlRootElement(jahiaInstallLocationFile, workspaceName);
+        Element workspaceXmlRootElement = getWorkspaceXmlRootElement(workspaceName);
 
         FileSystem workspaceFileSystem = getFileSystem(workspaceXmlRootElement, "/Workspace/FileSystem", workspaceProperties);
         PMContext livePMContext = new PMContext(jackrabbitHomeDir, workspaceFileSystem, rootNodeId, getNamespaceRegistry(), getNodeTypeRegistry(), dataStore);
