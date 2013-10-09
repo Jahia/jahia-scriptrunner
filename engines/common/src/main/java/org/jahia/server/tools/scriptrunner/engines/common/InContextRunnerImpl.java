@@ -85,7 +85,11 @@ public class InContextRunnerImpl implements InContextRunner {
                 alternateDBConfigurationProperties.load(alternateDBConfPropStream);
                 databaseConfiguration = new DatabaseConfiguration();
                 BeanUtils.populate(databaseConfiguration, alternateDBConfigurationProperties);
-                System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
+                if (System.getProperty("derby.system.home") == null && databaseConfiguration.getDriverClassName().toLowerCase().contains("derby")) {
+                    System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
+                    logger.info("Setting system property derby.system.home to value:" + System.getProperty("derby.system.home"));
+                    logger.info("If you need to initialize it to a different location please specify the value on the JVM command line with a -Dderby.system.home=PATH parameter.");
+                }
                 logger.info("Alternate database configuration loaded successfully from file " + alternateDBConfFile);
                 return;
             } catch (FileNotFoundException e) {
@@ -122,7 +126,11 @@ public class InContextRunnerImpl implements InContextRunner {
                     resource.getAttributeValue("username"),
                     resource.getAttributeValue("password"));
 
-            System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
+            if (System.getProperty("derby.system.home") == null && databaseConfiguration.getDriverClassName().toLowerCase().contains("derby")) {
+                System.setProperty("derby.system.home", new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "var" + File.separator+ "dbdata").getAbsolutePath());
+                logger.info("Setting system property derby.system.home to value:" + System.getProperty("derby.system.home"));
+                logger.info("If you need to initialize it to a different location please specify the value on the JVM command line with a -Dderby.system.home=PATH parameter.");
+            }
         } catch (FileNotFoundException e) {
             logger.error("Error loading database configuration", e);
         } catch (JDOMException e) {

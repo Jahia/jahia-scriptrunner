@@ -27,14 +27,16 @@ JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jackrabbitConfigFile, j
 
 FileSystemResource namespaceRegistryFile = new FileSystemResource(
         jackrabbitHelper.getRepositoryFileSystem(), "/namespaces/ns_reg.properties");
+FileSystemResource namespaceIndexFile = new FileSystemResource(
+        jackrabbitHelper.getRepositoryFileSystem(), "/namespaces/ns_idx.properties");
 
-namespaceRegistryFile.
-
-InputStream nsRegStream = getDBFile("/namespaces", "ns_reg.properties", connection);
+// InputStream nsRegStream = getDBFile("/namespaces", "ns_reg.properties", connection);
+InputStream nsRegStream = namespaceRegistryFile.getInputStream();
 Properties nsReg = new Properties();
 nsReg.load(nsRegStream);
 nsRegStream.close();
-InputStream nsIdxStream = getDBFile("/namespaces", "ns_idx.properties", connection);
+// InputStream nsIdxStream = getDBFile("/namespaces", "ns_idx.properties", connection);
+InputStream nsIdxStream = namespaceIndexFile.getInputStream();
 Properties nsIdx = new Properties();
 nsIdx.load(nsIdxStream);
 nsIdxStream.close();
