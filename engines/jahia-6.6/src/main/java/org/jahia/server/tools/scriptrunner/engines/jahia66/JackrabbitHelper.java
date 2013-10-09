@@ -61,6 +61,9 @@ public class JackrabbitHelper {
     private boolean consistencyCheck = false;
     private boolean consistencyFix = false;
 
+    private String workspacesRootPath = null;
+    private File workspacesRootFile = null;
+
     private Properties jackrabbitProperties = new Properties();
 
     public JackrabbitHelper(File jackrabbitConfigFile, File jackrabbitHomeDir, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException, JDOMException {
@@ -80,9 +83,12 @@ public class JackrabbitHelper {
         dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, databaseConfiguration.getPassword());
         dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, databaseConfiguration.getDatabaseType());
         dataSourceConfig.addDataSourceDefinition(dataSourceName, dataSourceProperties);
+        Element workspacesElement = (Element) XPath.newInstance("/Repository/Workspaces").selectSingleNode(repositoryXmlRootElement);
         jackrabbitProperties.setProperty("rep.home", jackrabbitHomeDir.getAbsolutePath());
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyCheck", Boolean.toString(consistencyCheck));
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyFix", Boolean.toString(consistencyFix));
+        workspacesRootPath = getRealValue(jackrabbitProperties, new Properties(), workspacesElement.getAttributeValue("rootPath"));
+        workspacesRootFile = new File(workspacesRootPath);
         connectionFactory.registerDataSources(dataSourceConfig);
         this.repositoryFileSystem = getFileSystem(repositoryXmlRootElement, "/Repository/FileSystem", jackrabbitProperties);
         this.dataStore = getDataStoreInstance(repositoryXmlRootElement, jackrabbitProperties);
@@ -139,7 +145,7 @@ public class JackrabbitHelper {
     }
 
     private Element getWorkspaceXmlRootElement(String workspaceName) {
-        File workspaceXmlConfigFile = new File(jackrabbitHomeDir, "workspaces" + File.separator + workspaceName + File.separator + "workspace.xml");
+        File workspaceXmlConfigFile = new File(workspacesRootFile, workspaceName + File.separator + "workspace.xml");
         return getXmlRootElement(workspaceXmlConfigFile);
     }
 
@@ -171,20 +177,25 @@ public class JackrabbitHelper {
         for (Element paramElement : paramElements) {
             String paramName = paramElement.getAttributeValue("name");
             String paramValue = paramElement.getAttributeValue("value");
-            String propertyName = null;
-            while ((propertyName = getPropertyReference(paramValue)) != null) {
-                if (existingProperties.getProperty(propertyName) != null) {
-                    paramValue = paramValue.replace("${" + propertyName + "}", existingProperties.getProperty(propertyName));
-                } else if (parameters.getProperty(propertyName) != null) {
-                    paramValue = paramValue.replace("${" + propertyName + "}", parameters.getProperty(propertyName));
-                } else {
-                    logger.warn("Couldn't find a property name " + propertyName + ", aborting property resolving...");
-                    break;
-                }
-            }
+            paramValue = getRealValue(existingProperties, parameters, paramValue);
             parameters.put(paramName, paramValue);
         }
         return parameters;
+    }
+
+    private String getRealValue(Properties existingProperties, Properties parameters, String paramValue) {
+        String propertyName = null;
+        while ((propertyName = getPropertyReference(paramValue)) != null) {
+            if (existingProperties.getProperty(propertyName) != null) {
+                paramValue = paramValue.replace("${" + propertyName + "}", existingProperties.getProperty(propertyName));
+            } else if (parameters.getProperty(propertyName) != null) {
+                paramValue = paramValue.replace("${" + propertyName + "}", parameters.getProperty(propertyName));
+            } else {
+                logger.warn("Couldn't find a property name " + propertyName + ", aborting property resolving...");
+                break;
+            }
+        }
+        return paramValue;
     }
 
     private String getPropertyReference(String value) {
@@ -277,7 +288,7 @@ public class JackrabbitHelper {
 
         Properties workspaceProperties = new Properties(jackrabbitProperties);
         workspaceProperties.setProperty("wsp.name", workspaceName);
-        workspaceProperties.setProperty("wsp.home", jackrabbitHomeDir.getAbsolutePath() + File.separator + "workspaces" + File.separator + workspaceName);
+        workspaceProperties.setProperty("wsp.home", new File(workspacesRootFile, workspaceName).getAbsolutePath());
 
         Element workspaceXmlRootElement = getWorkspaceXmlRootElement(workspaceName);
 
