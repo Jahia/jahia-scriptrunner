@@ -14,6 +14,7 @@ import org.jdom.input.*;
 Logger logger = LoggerFactory.getLogger("dumpJCRFileSystem.groovy");
 
 DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
+Properties groovyScriptOptions = (Properties) scriptOptions;
 
 File jahiaInstallLocation = (File) jahiaInstallLocationFile;
 File jackrabbitConfigFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
@@ -23,9 +24,9 @@ JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jackrabbitConfigFile, j
 
 FileSystem repositoryFileSystem = jackrabbitHelper.getRepositoryFileSystem();
 
-dumpFolderContents("/", repositoryFileSystem, jackrabbitHelper, logger)
+dumpFolderContents("/", repositoryFileSystem, jackrabbitHelper, groovyScriptOptions, logger)
 
-private void dumpFileContents(String name, InputStream data, Logger logger) {
+private void dumpFileContents(String name, InputStream data, Properties scriptOptions, Logger logger) {
     if (name.toLowerCase().endsWith(".properties")) {
         Properties properties = new Properties();
         properties.load(data);
@@ -33,7 +34,8 @@ private void dumpFileContents(String name, InputStream data, Logger logger) {
             logger.info("--> " + propertyName + " = " + properties.getProperty(propertyName));
         }
     } else if (name.toLowerCase().endsWith(".xml")) {
-        if (Boolean.getBoolean("dumpXML").booleanValue()) {
+        if (scriptOptions.getProperty("dumpXML") != null &&
+            "true".equals(scriptOptions.getProperty("dumpXML"))) {
             fileReader = new InputStreamReader(data);
             SAXBuilder saxBuilder = new SAXBuilder();
             Document jdomDocument = saxBuilder.build(fileReader);
@@ -46,7 +48,7 @@ private void dumpFileContents(String name, InputStream data, Logger logger) {
     }
 }
 
-private void dumpFolderContents(String folderPath, FileSystem repositoryFileSystem, JackrabbitHelper jackrabbitHelper, Logger logger) {
+private void dumpFolderContents(String folderPath, FileSystem repositoryFileSystem, JackrabbitHelper jackrabbitHelper, Properties scriptOptions, Logger logger) {
     String[] folderContents = repositoryFileSystem.list(folderPath);
     for (String folderContent : folderContents) {
         String folderContentPath = folderPath + folderContent;
@@ -56,10 +58,10 @@ private void dumpFolderContents(String folderPath, FileSystem repositoryFileSyst
         FileSystemResource folderResource = new FileSystemResource(jackrabbitHelper.getRepositoryFileSystem(), folderContentPath);
         if (repositoryFileSystem.isFile(folderContentPath)) {
             logger.info("path=" + folderResource.getPath() + " name=" + folderResource.getName() + " lastModified=" + folderResource.lastModified() + " length=" + folderResource.length());
-            dumpFileContents(folderResource.getName(), folderResource.getInputStream(), logger);
+            dumpFileContents(folderResource.getName(), folderResource.getInputStream(), scriptOptions, logger);
         } else if (repositoryFileSystem.isFolder(folderContentPath)) {
             logger.info("path=" + folderResource.getPath() + " name=" + folderResource.getName() + " lastModified=" + folderResource.lastModified());
-            dumpFolderContents(folderContentPath, repositoryFileSystem, jackrabbitHelper, logger);
+            dumpFolderContents(folderContentPath, repositoryFileSystem, jackrabbitHelper, scriptOptions, logger);
         } else {
             logger.warn("Unrecognized file system entry " + folderContentPath + ". It is neither a file or a folder !");
         }
