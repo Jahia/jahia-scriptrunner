@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils;
 import org.jahia.commons.Version;
 import org.jahia.server.tools.scriptrunner.common.InContextRunner;
 import org.jahia.server.tools.scriptrunner.common.ScriptRunnerConfiguration;
+import org.jahia.server.tools.scriptrunner.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,7 +153,7 @@ public class ScriptRunner {
                 engineVersion = line.getOptionValue("v");
             } else {
                 Version jahiaImplementationVersion = null;
-                File[] versionMatchingFiles = getMatchingFiles(configuration.getVersionDetectionJar());
+                File[] versionMatchingFiles = Utils.getMatchingFiles(configuration.getVersionDetectionJar());
                 if (versionMatchingFiles != null && versionMatchingFiles.length > 0) {
                     if (versionMatchingFiles.length > 1) {
                         logger.warn("More than one JAR was matched by wildcard " + configuration.getVersionDetectionJar() + ", will only use first match !");
@@ -404,48 +405,12 @@ public class ScriptRunner {
         return value.substring(markerStart+"${".length(), markerEnd);
     }
 
-    private static File[] getMatchingFiles(String wildcardPath) {
-        String parentPath = null;
-        String wildCardName = wildcardPath;
-        int lastSlashPos = wildcardPath.lastIndexOf("/");
-        if (lastSlashPos > -1) {
-            parentPath = wildcardPath.substring(0, lastSlashPos);
-            wildCardName = wildcardPath.substring(lastSlashPos + 1);
-        }
-        if (!wildCardName.contains("*")) {
-            return new File[] { new File(wildcardPath) };
-        }
-        wildCardName = wildCardName.replaceAll("\\.", "\\\\.");
-        wildCardName = wildCardName.replaceAll("\\*", ".*");
-        File parentFile = new File(".");
-        if (parentPath != null) {
-            parentFile = new File(parentPath);
-        }
-        if (parentFile == null || !parentFile.exists() || !parentFile.isDirectory()) {
-            return new File[0];
-        }
-        final Pattern matchingNamePattern = Pattern.compile(wildCardName);
-        File[] matchingFiles = parentFile.listFiles(new FilenameFilter() {
-            public boolean accept(File file, String name) {
-                Matcher nameMatcher = matchingNamePattern.matcher(name);
-                if (nameMatcher.matches()) {
-                    return true;
-                }
-                return false;
-            }
-        });
-        if (matchingFiles == null) {
-            matchingFiles = new File[0];
-        }
-        return matchingFiles;
-    }
-
     private static List<URL> getTargetClassLoaderURLs(String targetClassPath) {
         String[] classPathParts = targetClassPath.split(",");
         List<URL> classLoaderURLs = new ArrayList<URL>();
 
         for (String classPathPart : classPathParts) {
-            File[] matchingFiles = getMatchingFiles(classPathPart);
+            File[] matchingFiles = Utils.getMatchingFiles(classPathPart);
             for (File matchingFile : matchingFiles) {
                 try {
                     if (matchingFile.exists()) {
