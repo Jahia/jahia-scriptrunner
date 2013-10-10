@@ -1,13 +1,14 @@
 jahia-scriptrunner
 ==================
 
-A small command-line utility to perform database or other modifications without launching Jahia.
+A small command-line utility to perform database or other low-level modifications without launching Jahia or
+other Jackrabbit-based application.
 
 Why this tool ?
 ---------------
 
 The goal of this tool is to be able to fix "chicken and egg" problems that may be encountered on
-Jahia environment that are no longer accessible through normal Jahia startup. Such problems may
+Jackrabbit environment that are no longer accessible through normal Jackrabbit startup. Such problems may
 include :
 - an incomplete namespace registry (possibly due to some invalid deployments, no longer possible
 with recent version of Jackrabbit or Jahia)
@@ -21,6 +22,33 @@ class loader that gives you access to all the Jahia libraries and classes from t
 product, the possibilities are endless as to what you may do (start a part of the system, re-use
 model classes, etc...). It can also be used to easily execute SQL statements against the database
 using the configuration already setup in the Jahia server installation.
+
+Features
+--------
+
+The Jahia Script Runner has a lot of built-in features, which may be expanded easily by writing scripts to use it
+with:
+* Full native integration with the configuration of Jahia servers, retrieve database connection and Jackrabbit
+  configuration from the deployed installation.
+* Compatibility with other Jackrabbit-based applications by using standard Jackrabbit configuration files
+* Compatibility with other JDBC applications by being able to specify the database configuration in the
+  configuration file
+* Groovy scripting is supported out of the box, with the possibility to support any JSR-223 language simply by
+  adding it in the tool's script class loader
+* Scripts execute in a dynamically setup classloader that is setup using the tool's configuration, using either
+  custom properties or automatically resolved from a Jahia deployed installation (in the case of non-Jahia applications,
+  you may simply override the default class loader property to whatever you need)
+* Built-in script to update Jackrabbit namespaces without starting the full repository, to correct any inconsistency
+  that could exist between declared namespaces and JCR content. This works for all Jackrabbit file systems, including
+  file systems that are stored in database blobs.
+* Built-in script to dump the contents of the Jackrabbit file system, regardless of the FS implementation used.
+* Built-in script to perform language integrity checks on JCR contents node inside of a Jackrabbit persistence manager
+  without needed to start the whole repository system. This is very useful if there is a problem with the Lucene indexes
+  preventing a full startup of the repository.
+* Helper classes to provide a JDBC connection or Jackrabbit persistence manager instances to easily access these
+  backends. You can use this to for example directly load node states from a Jackrabbit persistence manager and perform
+  checks or even modify entries without starting the repository !
+* Build your own scripts to do much more !
 
 How it works
 ------------
