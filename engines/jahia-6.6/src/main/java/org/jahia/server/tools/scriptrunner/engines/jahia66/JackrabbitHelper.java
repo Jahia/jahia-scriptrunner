@@ -19,7 +19,7 @@ import org.apache.jackrabbit.core.util.db.ConnectionFactory;
 import org.apache.jackrabbit.core.util.db.DatabaseAware;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.name.NameFactoryImpl;
-import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration;
+import org.jahia.server.tools.scriptrunner.common.ScriptRunnerConfiguration;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
@@ -43,7 +43,7 @@ public class JackrabbitHelper {
 
     private File jackrabbitConfigFile;
     private File jackrabbitHomeDir;
-    private DatabaseConfiguration databaseConfiguration;
+    private ScriptRunnerConfiguration scriptRunnerConfiguration;
     private ConnectionFactory connectionFactory = new ConnectionFactory();
 
     private FileSystem repositoryFileSystem = null;
@@ -66,22 +66,22 @@ public class JackrabbitHelper {
 
     private Properties jackrabbitProperties = new Properties();
 
-    public JackrabbitHelper(File jackrabbitConfigFile, File jackrabbitHomeDir, DatabaseConfiguration databaseConfiguration, boolean consistencyCheck, boolean consistencyFix) throws RepositoryException, JDOMException {
-        this.jackrabbitConfigFile = jackrabbitConfigFile;
-        this.jackrabbitHomeDir = jackrabbitHomeDir;
-        this.databaseConfiguration = databaseConfiguration;
-        this.consistencyCheck = consistencyCheck;
-        this.consistencyFix = consistencyFix;
+    public JackrabbitHelper(ScriptRunnerConfiguration scriptRunnerConfiguration) throws RepositoryException, JDOMException {
+        this.jackrabbitConfigFile = new File(scriptRunnerConfiguration.getJackrabbitConfigFile());
+        this.jackrabbitHomeDir = new File(scriptRunnerConfiguration.getJackrabbitHomeDirectory());
+        this.scriptRunnerConfiguration = scriptRunnerConfiguration;
+        this.consistencyCheck = scriptRunnerConfiguration.isJackrabbitConsistencyCheck();
+        this.consistencyFix = scriptRunnerConfiguration.isJackrabbitConsistencyFix();
         this.repositoryXmlRootElement = getRepositoryXmlRootElement();
         Element dataSourceElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource").selectSingleNode(repositoryXmlRootElement);
         String dataSourceName = dataSourceElement.getAttributeValue("name");
         DataSourceConfig dataSourceConfig = new DataSourceConfig();
         Properties dataSourceProperties = new Properties();
-        dataSourceProperties.setProperty(DataSourceConfig.DRIVER, databaseConfiguration.getDriverClassName());
-        dataSourceProperties.setProperty(DataSourceConfig.URL, databaseConfiguration.getConnectionURL());
-        dataSourceProperties.setProperty(DataSourceConfig.USER, databaseConfiguration.getUserName());
-        dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, databaseConfiguration.getPassword());
-        dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, databaseConfiguration.getDatabaseType());
+        dataSourceProperties.setProperty(DataSourceConfig.DRIVER, scriptRunnerConfiguration.getDbDriverClassName());
+        dataSourceProperties.setProperty(DataSourceConfig.URL, scriptRunnerConfiguration.getDbUrl());
+        dataSourceProperties.setProperty(DataSourceConfig.USER, scriptRunnerConfiguration.getDbUserName());
+        dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, scriptRunnerConfiguration.getDbPassword());
+        dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, scriptRunnerConfiguration.getDbDatabaseType());
         dataSourceConfig.addDataSourceDefinition(dataSourceName, dataSourceProperties);
         Element workspacesElement = (Element) XPath.newInstance("/Repository/Workspaces").selectSingleNode(repositoryXmlRootElement);
         jackrabbitProperties.setProperty("rep.home", jackrabbitHomeDir.getAbsolutePath());
@@ -136,10 +136,11 @@ public class JackrabbitHelper {
     }
 
     private Element getRepositoryXmlRootElement() throws JDOMException {
+        logger.info("Loading Jackrabbit configuration file from " + jackrabbitConfigFile + "...");
         Element rootElement = getXmlRootElement(jackrabbitConfigFile);
-        if (databaseConfiguration.getDatabaseType() == null) {
+        if (scriptRunnerConfiguration.getDbDatabaseType() == null) {
             Element databaseTypeElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource/param[@name='databaseType']").selectSingleNode(rootElement);
-            databaseConfiguration.setDatabaseType(databaseTypeElement.getAttributeValue("value"));
+            scriptRunnerConfiguration.setDbDatabaseType(databaseTypeElement.getAttributeValue("value"));
         }
         return rootElement;
     }

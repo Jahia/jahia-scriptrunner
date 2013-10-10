@@ -42,15 +42,13 @@ passing it the following bound variables :
     are properly sent to the database. This is done because PostgreSQL requires non-autocommit connections to work
     with BLOBs.
 
-    jahiaInstallLocationFile - a java.util.File object that is the installation directory of Jahia
+    scriptRunnerConfiguration - a instance of the ScriptRunnerConfiguration class that contains all the configuration
+    of the current script runner instance
 
     classLoader - the ClassLoader used to load all the Jahia JARs and classes
 
     scriptOptions - a Properties object with all the options passed on the command line using the -X
     parameter
-
-    databaseConfiguration - a org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
-    object that contains the database connection configuration (driver, url, username and password)
 
 How to use it
 -------------
@@ -165,41 +163,36 @@ persistence manager instances.
     package scripts
 
     import org.apache.jackrabbit.core.id.NodeId
-    import org.apache.jackrabbit.core.persistence.pool.BundleDbPersistenceManager
+    import org.apache.jackrabbit.core.persistence.IterablePersistenceManager
     import org.apache.jackrabbit.core.state.NodeState
-    import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
     import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
     import org.slf4j.Logger
     import org.slf4j.LoggerFactory
 
     Logger logger = LoggerFactory.getLogger("checkJCRLanguageIntegrity.groovy");
 
-    DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
-
-    File jahiaInstallLocation = (File) jahiaInstallLocationFile;
-
-    JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jahiaInstallLocation, dbConfiguration, false, false);
+    JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(scriptRunnerConfiguration);
 
     logger.info("Checking default workspace bundles...");
 
-    BundleDbPersistenceManager defaultDbPersistenceManager = jackrabbitHelper.getWorkspacePM("default");
-    checkLanguageIntegrity(defaultDbPersistenceManager, jackrabbitHelper, logger);
+    IterablePersistenceManager defaultPM = (IterablePersistenceManager) jackrabbitHelper.getWorkspacePM("default");
+    checkLanguageIntegrity(defaultPM, jackrabbitHelper, logger);
 
     logger.info("Checking live workspace bundles...");
-    BundleDbPersistenceManager liveDbPersistenceManager = jackrabbitHelper.getWorkspacePM("live");
-    checkLanguageIntegrity(liveDbPersistenceManager, jackrabbitHelper, logger);
+    IterablePersistenceManager livePM = (IterablePersistenceManager) jackrabbitHelper.getWorkspacePM("live");
+    checkLanguageIntegrity(livePM, jackrabbitHelper, logger);
 
     logger.info("Checking versioning bundles...");
-    BundleDbPersistenceManager versioningDbPersistenceManager = jackrabbitHelper.getVersioningPM();
-    checkLanguageIntegrity(versioningDbPersistenceManager, jackrabbitHelper, logger);
+    IterablePersistenceManager versioningPM = (IterablePersistenceManager) jackrabbitHelper.getVersioningPM();
+    checkLanguageIntegrity(versioningPM, jackrabbitHelper, logger);
 
-    private void checkLanguageIntegrity(BundleDbPersistenceManager defaultDbPersistenceManager, JackrabbitHelper jackrabbitHelper, Logger logger) {
-        Iterable<NodeId> allNodeIds = defaultDbPersistenceManager.getAllNodeIds(null, 0);
+    private void checkLanguageIntegrity(IterablePersistenceManager iterablePersistenceManager, JackrabbitHelper jackrabbitHelper, Logger logger) {
+        Iterable<NodeId> allNodeIds = iterablePersistenceManager.getAllNodeIds(null, 0);
         Iterator<NodeId> allNodeIdIterator = allNodeIds.iterator();
         int count = 0;
         while (allNodeIdIterator.hasNext()) {
             NodeId nodeId = allNodeIdIterator.next();
-            NodeState nodeState = defaultDbPersistenceManager.load(nodeId);
+            NodeState nodeState = iterablePersistenceManager.load(nodeId);
             if (jackrabbitHelper.isNodeType(nodeState, "http://www.jcp.org/jcr/mix/1.0", "language")) {
                 if (!jackrabbitHelper.hasProperty(nodeState, "http://www.jcp.org/jcr/1.0", "language")) {
                     logger.warn("Node " + nodeState.getId() + " is of type mix:language but is missing a jcr:language property !");

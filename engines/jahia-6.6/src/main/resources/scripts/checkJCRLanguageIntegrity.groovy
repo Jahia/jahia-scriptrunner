@@ -2,23 +2,14 @@ package scripts
 
 import org.apache.jackrabbit.core.id.NodeId
 import org.apache.jackrabbit.core.persistence.IterablePersistenceManager
-import org.apache.jackrabbit.core.persistence.PersistenceManager
-import org.apache.jackrabbit.core.persistence.pool.BundleDbPersistenceManager
 import org.apache.jackrabbit.core.state.NodeState
-import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
 import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 Logger logger = LoggerFactory.getLogger("checkJCRLanguageIntegrity.groovy");
 
-DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
-
-File jahiaInstallLocation = (File) jahiaInstallLocationFile;
-File jackrabbitConfigFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
-File jackrabbitHomeDir = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "var" + File.separator + "repository");;
-
-JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jackrabbitConfigFile, jackrabbitHomeDir, dbConfiguration, false, false);
+JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(scriptRunnerConfiguration);
 
 logger.info("Checking default workspace bundles...");
 

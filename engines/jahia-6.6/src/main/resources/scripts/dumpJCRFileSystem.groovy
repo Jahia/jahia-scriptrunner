@@ -1,26 +1,20 @@
 package scripts
 
-import org.apache.jackrabbit.core.fs.FileSystemResource
 import org.apache.jackrabbit.core.fs.FileSystem
-import org.jahia.server.tools.scriptrunner.engines.common.DatabaseConfiguration
+import org.apache.jackrabbit.core.fs.FileSystemResource
 import org.jahia.server.tools.scriptrunner.engines.jahia66.JackrabbitHelper
+import org.jdom.Document
+import org.jdom.input.SAXBuilder
+import org.jdom.output.Format
+import org.jdom.output.XMLOutputter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import org.jdom.*;
-import org.jdom.output.*;
-import org.jdom.input.*;
-
 Logger logger = LoggerFactory.getLogger("dumpJCRFileSystem.groovy");
 
-DatabaseConfiguration dbConfiguration = (DatabaseConfiguration) databaseConfiguration;
 Properties groovyScriptOptions = (Properties) scriptOptions;
 
-File jahiaInstallLocation = (File) jahiaInstallLocationFile;
-File jackrabbitConfigFile = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "etc" + File.separator + "repository" + File.separator + "jackrabbit" + File.separator + "repository.xml");
-File jackrabbitHomeDir = new File(jahiaInstallLocation, "WEB-INF" + File.separator + "var" + File.separator + "repository");;
-
-JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(jackrabbitConfigFile, jackrabbitHomeDir, dbConfiguration, false, false);
+JackrabbitHelper jackrabbitHelper = new JackrabbitHelper(scriptRunnerConfiguration);
 
 FileSystem repositoryFileSystem = jackrabbitHelper.getRepositoryFileSystem();
 

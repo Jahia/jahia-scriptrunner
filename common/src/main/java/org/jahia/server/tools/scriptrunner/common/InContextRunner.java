@@ -9,6 +9,6 @@ import java.util.Properties;
  */
 public interface InContextRunner {
 
-    public boolean run(File jahiaInstallLocationFile, String scriptName, InputStream scriptStream, Properties scriptOptions, ClassLoader classLoader);
+    public boolean run(ScriptRunnerConfiguration scriptRunnerConfiguration, String scriptName, InputStream scriptStream, ClassLoader classLoader);
 
 }

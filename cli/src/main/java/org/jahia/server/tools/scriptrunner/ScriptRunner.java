@@ -1,13 +1,17 @@
 package org.jahia.server.tools.scriptrunner;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.jahia.commons.Version;
 import org.jahia.server.tools.scriptrunner.common.InContextRunner;
+import org.jahia.server.tools.scriptrunner.common.ScriptRunnerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -18,6 +22,8 @@ import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Main bootstrap class
@@ -25,18 +31,22 @@ import java.util.jar.Manifest;
 public class ScriptRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(ScriptRunner.class);
-    private static String jahiaInstallLocation;
     private static Version scriptRunnerVersion;
     private static String scriptRunnerBuildNumber;
-    private static File userHomeDir;
     private static File tempDirectory;
 
     public static Options buildOptions() {
 
-        Option threads = OptionBuilder.withArgName("dir")
+        Option configFile = OptionBuilder.withArgName("file")
                 .hasArg()
-                .withDescription("Jahia installation directory")
-                .withLongOpt("installationDirectory")
+                .withDescription("The configuration file to use to setup the Jahia script runner")
+                .withLongOpt("configFile")
+                .create("c");
+
+        Option targetDirectory = OptionBuilder.withArgName("dir")
+                .hasArg()
+                .withDescription("Target directory")
+                .withLongOpt("targetDirectory")
                 .create("d");
 
         Option scriptOptions = OptionBuilder.withArgName("scriptOptions")
@@ -47,8 +57,8 @@ public class ScriptRunner {
 
         Option jahiaVersion = OptionBuilder.withArgName("version")
                 .hasArg()
-                .withDescription("Overrides the automatic Jahia version detection and specify a version using this command line option")
-                .withLongOpt("jahiaVersion")
+                .withDescription("Overrides the automatic version detection and specify a version using this command line option")
+                .withLongOpt("targetVersion")
                 .create("v");
 
         Option listAvailableScripts = OptionBuilder
@@ -62,7 +72,8 @@ public class ScriptRunner {
                         .create("h");
 
         Options options = new Options();
-        options.addOption(threads);
+        options.addOption(configFile);
+        options.addOption(targetDirectory);
         options.addOption(scriptOptions);
         options.addOption(jahiaVersion);
         options.addOption(listAvailableScripts);
@@ -76,12 +87,6 @@ public class ScriptRunner {
         try {
             displayStartupBanner();
 
-            userHomeDir = new File(System.getProperty("user.home"), ".jahia-scriptrunner");
-
-            tempDirectory = new File(userHomeDir, "temp");
-            tempDirectory.mkdirs();
-
-
             // parse the command line arguments
             Options options = buildOptions();
             CommandLine line = parser.parse(options, args);
@@ -93,15 +98,24 @@ public class ScriptRunner {
                 return;
             }
 
-            if (line.hasOption("d")) {
-                jahiaInstallLocation = line.getOptionValue("d");
-            } else {
-                jahiaInstallLocation = System.getProperty("user.dir");
+            String configFileLocation = null;
+            if (line.hasOption("c")) {
+                configFileLocation = line.getOptionValue("c");
             }
 
-            File jahiaInstallLocationFile = new File(jahiaInstallLocation);
-            if (!jahiaInstallLocationFile.exists() && !jahiaInstallLocationFile.isDirectory()) {
-                logger.error("Invalid jahia installation directory " + jahiaInstallLocationFile.getAbsolutePath());
+            String baseDirectory = null;
+            if (line.hasOption("d")) {
+                baseDirectory = line.getOptionValue("d");
+            }
+
+            ScriptRunnerConfiguration configuration = getConfiguration(configFileLocation, baseDirectory);
+
+            tempDirectory = new File(configuration.getTempDirectory());
+            tempDirectory.mkdirs();
+
+            File baseDirectoryFile = new File(configuration.getBaseDirectory());
+            if (!baseDirectoryFile.exists() && !baseDirectoryFile.isDirectory()) {
+                logger.error("Invalid target directory " + baseDirectoryFile.getAbsolutePath());
                 return;
             }
 
@@ -121,7 +135,7 @@ public class ScriptRunner {
                 }
             }
 
-            List<URL> jahiaClassLoaderURLs = new ArrayList<URL>();
+            List<URL> classLoaderURLs = new ArrayList<URL>();
 
             // first we look for the Script Runner's jars
             // here because of http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4735639 that is still not fixed (!)
@@ -130,83 +144,56 @@ public class ScriptRunner {
             ClassLoader appClassLoader = ScriptRunner.class.getClassLoader();
             URL scriptRunnerCommonEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-common-" + projectVersion + ".jar");
             URL extractedScriptRunnerCommonEngineJar = extractToTemp(scriptRunnerCommonEngineJar).toURI().toURL();
-            jahiaClassLoaderURLs.add(extractedScriptRunnerCommonEngineJar);
+            classLoaderURLs.add(extractedScriptRunnerCommonEngineJar);
 
-            // resolve the Jahia engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
-            File libDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "lib");
-            File[] jarFiles = libDirectory.listFiles(new FilenameFilter() {
-                public boolean accept(File file, String name) {
-                    if (name.toLowerCase().endsWith(".jar")) {
-                        return true;
-                    }
-                    return false;
-                }
-            });
-            String jahiaVersion = "6.6";
+            // resolve the target engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
+            String targetVersion = configuration.getTargetDefaultVersion();
             if (line.hasOption("v")) {
-                jahiaVersion = line.getOptionValue("v");
+                targetVersion = line.getOptionValue("v");
             } else {
                 Version jahiaImplementationVersion = null;
-                if (jarFiles != null) {
-                    for (File file : jarFiles) {
-                        if (file.getName().toLowerCase().startsWith("jahia-impl-")) {
-                            JarFile jarFile = new JarFile(file);
-                            Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
-                            String implementationVersion = mainAttributes.getValue("Implementation-Version");
-                            jahiaImplementationVersion = new Version(implementationVersion);
-                            jahiaVersion = implementationVersion;
-                            String implementationBuild = mainAttributes.getValue("Implementation-Build");
-                            logger.info("Detected Jahia v" + jahiaImplementationVersion + " build number " + implementationBuild);
-                        }
+                File[] versionMatchingFiles = getMatchingFiles(configuration.getVersionDetectionJar());
+                if (versionMatchingFiles != null && versionMatchingFiles.length > 0) {
+                    if (versionMatchingFiles.length > 1) {
+                        logger.warn("More than one JAR was matched by wildcard " + configuration.getVersionDetectionJar() + ", will only use first match !");
                     }
+                    File file = versionMatchingFiles[0];
+                    JarFile jarFile = new JarFile(file);
+                    Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
+                    String implementationVersion = mainAttributes.getValue(configuration.getVersionDetectionVersionAttributeName());
+                    jahiaImplementationVersion = new Version(implementationVersion);
+                    targetVersion = implementationVersion;
+                    String implementationBuild = mainAttributes.getValue(configuration.getVersionDetectionBuildAttributeName());
+                    logger.info("Detected "+configuration.getTargetDisplayName()+" v" + jahiaImplementationVersion + " build number " + implementationBuild);
                 }
             }
-            URL scriptRunnerJahiaEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-jahia-" + jahiaVersion + "-" + projectVersion + ".jar");
-            while (scriptRunnerJahiaEngineJar == null && jahiaVersion.length() > 0) {
-                int lastDotPos = jahiaVersion.lastIndexOf(".");
+            URL scriptRunnerTargetEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getTargetName()+"-" + targetVersion + "-" + projectVersion + ".jar");
+            while (scriptRunnerTargetEngineJar == null && targetVersion.length() > 0) {
+                int lastDotPos = targetVersion.lastIndexOf(".");
                 if (lastDotPos > -1) {
-                    jahiaVersion = jahiaVersion.substring(0, lastDotPos);
-                    scriptRunnerJahiaEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-jahia-" + jahiaVersion + "-" + projectVersion + ".jar");
+                    targetVersion = targetVersion.substring(0, lastDotPos);
+                    scriptRunnerTargetEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getTargetName()+"-" + targetVersion + "-" + projectVersion + ".jar");
                 } else {
-                    jahiaVersion = "";
+                    targetVersion = "";
                 }
             }
-            if (jahiaVersion.length() > 0) {
-                logger.info("Using script engine v" + jahiaVersion);
+            if (targetVersion.length() > 0) {
+                logger.info("Using script engine v" + targetVersion);
             } else {
-                logger.error("Couldn't find any engine for the specified Jahia version, aborting !");
+                logger.error("Couldn't find any engine for the specified target version, aborting !");
                 return;
             }
-            URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerJahiaEngineJar).toURI().toURL();
-            jahiaClassLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
+            URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerTargetEngineJar).toURI().toURL();
+            classLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
 
-            File classesDirectory = new File(jahiaInstallLocationFile, "WEB-INF" + File.separator + "classes");
-            jahiaClassLoaderURLs.add(classesDirectory.toURI().toURL());
+            classLoaderURLs.addAll(getTargetClassLoaderURLs(configuration.getTargetClassPath()));
 
-            if (jarFiles != null) {
-                for (File jarFile : jarFiles) {
-                    jahiaClassLoaderURLs.add(jarFile.toURI().toURL());
-                }
-            }
-
-            Properties scriptOptions = new Properties();
             if (line.hasOption("x")) {
                 String scriptOptionList = line.getOptionValue("x");
-                String[] scriptOptionArray = scriptOptionList.split(",");
-                for (String scriptOption : scriptOptionArray) {
-                    int equalsPos = scriptOption.indexOf("=");
-                    if (equalsPos > -1) {
-                        String key = scriptOption.substring(0, equalsPos);
-                        String value = scriptOption.substring(equalsPos + 1);
-                        scriptOptions.put(key, value);
-                    } else {
-                        logger.error("Found invalid key-pair value: " + scriptOption + ", will ignore it!");
-                    }
-                }
+                configuration.setScriptOptions(scriptOptionList);
             }
 
-
-            URLClassLoader urlClassLoader = new URLClassLoader(jahiaClassLoaderURLs.toArray(new URL[jahiaClassLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
+            URLClassLoader urlClassLoader = new URLClassLoader(classLoaderURLs.toArray(new URL[classLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
             if (line.hasOption("l")) {
                 InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/availableScripts.properties");
                 if (scriptClassLoaderStream == null) {
@@ -239,7 +226,7 @@ public class ScriptRunner {
             if (scriptStream != null) {
                 Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.scriptrunner.engines.common.InContextRunnerImpl");
                 InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
-                inContextRunner.run(jahiaInstallLocationFile, scriptName, scriptStream, scriptOptions, urlClassLoader);
+                inContextRunner.run(configuration, scriptName, scriptStream, urlClassLoader);
             } else {
                 logger.error("Couldn't resolve any script to run, aborting !");
             }
@@ -262,10 +249,9 @@ public class ScriptRunner {
     }
 
     public static void displayStartupBanner() throws Exception {
-        String message =
-                "==========================================================================================\n" +
-                        "Jahia Script Runner v" + getScriptRunnerVersion() + " build " + getScriptRunnerBuildNumber() + " (c) 2013 All Rights Reserved.     \n" +
-                        "==========================================================================================\n";
+        String message = "==========================================================================================\n" +
+                         "Jahia Script Runner v" + getScriptRunnerVersion() + " build " + getScriptRunnerBuildNumber() + " (c) 2013 All Rights Reserved.     \n" +
+                         "==========================================================================================\n";
         System.out.println(message);
     }
 
@@ -314,6 +300,140 @@ public class ScriptRunner {
         logger.info("Extracting resource " + resourceURL + " to " + destFile);
         FileUtils.copyInputStreamToFile(resourceURL.openStream(), destFile);
         return destFile;
+    }
+
+    public static ScriptRunnerConfiguration getConfiguration(String configFileLocation, String baseDirectory) {
+        ScriptRunnerConfiguration configuration = new ScriptRunnerConfiguration();
+        File scriptConfigFile = null;
+        if (configFileLocation != null) {
+            scriptConfigFile = new File(configFileLocation);
+            if (!scriptConfigFile.exists()) {
+                scriptConfigFile = null;
+            }
+        }
+        if (scriptConfigFile == null) {
+            scriptConfigFile = new File("scriptRunner.properties");
+            if (!scriptConfigFile.exists()) {
+                scriptConfigFile = null;
+            }
+        }
+        InputStream configFileInputStream = null;
+        try {
+            if (scriptConfigFile != null) {
+                configFileInputStream = new FileInputStream(scriptConfigFile);
+            } else {
+                configFileInputStream = ScriptRunner.class.getClassLoader().getResourceAsStream("scriptRunner.properties");
+            }
+            Properties configurationProperties = new Properties(System.getProperties());
+            configurationProperties.load(configFileInputStream);
+            if (baseDirectory != null) {
+                configurationProperties.setProperty("baseDirectory", baseDirectory);
+            } else {
+                if (configurationProperties.getProperty("baseDirectory") == null) {
+                    configurationProperties.setProperty("baseDirectory", System.getProperty("user.dir"));
+                }
+            }
+            resolveProperties(configurationProperties);
+
+            BeanUtils.populate(configuration, configurationProperties);
+        } catch (IOException ioe) {
+            logger.error("Error reading configuration", ioe);
+        } catch (InvocationTargetException e) {
+            logger.error("Error mapping configuration to bean", e);
+        } catch (IllegalAccessException e) {
+            logger.error("Error mapping configuration to bean", e);
+        } finally {
+            IOUtils.closeQuietly(configFileInputStream);
+        }
+        return configuration;
+    }
+
+    private static void resolveProperties(Properties configurationProperties) {
+        for (String propertyName : configurationProperties.stringPropertyNames()) {
+            String propertyValue = resolvePropertyValue(configurationProperties, propertyName);
+            if (propertyValue != null &&
+                    !propertyValue.equals(configurationProperties.getProperty(propertyName))) {
+                configurationProperties.setProperty(propertyName, propertyValue);
+            }
+        }
+    }
+
+    private static String resolvePropertyValue(Properties configurationProperties, String propertyName) {
+        String propertyValue = configurationProperties.getProperty(propertyName);
+        String propertyRefName = null;
+        while ((propertyRefName = getPropertyReference(propertyValue)) != null) {
+            if (configurationProperties.getProperty(propertyRefName) != null) {
+                propertyValue = propertyValue.replace("${" + propertyRefName + "}", resolvePropertyValue(configurationProperties, propertyRefName));
+            } else {
+                break;
+            }
+        }
+        return propertyValue;
+    }
+
+    private static String getPropertyReference(String value) {
+        int markerStart = value.indexOf("${");
+        if (markerStart < 0) {
+            return null;
+        }
+        int markerEnd = value.indexOf("}", markerStart+"${".length());
+        if (markerEnd < 0) {
+            return null;
+        }
+        return value.substring(markerStart+"${".length(), markerEnd);
+    }
+
+    private static File[] getMatchingFiles(String wildcardPath) {
+        String parentPath = null;
+        String wildCardName = wildcardPath;
+        int lastSlashPos = wildcardPath.lastIndexOf("/");
+        if (lastSlashPos > -1) {
+            parentPath = wildcardPath.substring(0, lastSlashPos);
+            wildCardName = wildcardPath.substring(lastSlashPos + 1);
+        }
+        if (!wildCardName.contains("*")) {
+            return new File[] { new File(wildcardPath) };
+        }
+        wildCardName = wildCardName.replaceAll("\\.", "\\\\.");
+        wildCardName = wildCardName.replaceAll("\\*", ".*");
+        File parentFile = new File(".");
+        if (parentPath != null) {
+            parentFile = new File(parentPath);
+        }
+        if (parentFile == null || !parentFile.exists() || !parentFile.isDirectory()) {
+            return new File[0];
+        }
+        final Pattern matchingNamePattern = Pattern.compile(wildCardName);
+        File[] matchingFiles = parentFile.listFiles(new FilenameFilter() {
+            public boolean accept(File file, String name) {
+                Matcher nameMatcher = matchingNamePattern.matcher(name);
+                if (nameMatcher.matches()) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        if (matchingFiles == null) {
+            matchingFiles = new File[0];
+        }
+        return matchingFiles;
+    }
+
+    private static List<URL> getTargetClassLoaderURLs(String targetClassPath) {
+        String[] classPathParts = targetClassPath.split(",");
+        List<URL> classLoaderURLs = new ArrayList<URL>();
+
+        for (String classPathPart : classPathParts) {
+            File[] matchingFiles = getMatchingFiles(classPathPart);
+            for (File matchingFile : matchingFiles) {
+                try {
+                    classLoaderURLs.add(matchingFile.toURI().toURL());
+                } catch (MalformedURLException e) {
+                    logger.error("Error transforming file to URL " + e);
+                }
+            }
+        }
+        return classLoaderURLs;
     }
 
 }
