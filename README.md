@@ -328,3 +328,27 @@ persistence manager instances.
 
 As you can see the code is quite straight-forward and it should be relatively easy to expand on it to perform other
 integrity checks or even perform modifications on the node states.
+
+Engines
+-------
+
+Engines are sub-projects of the Jahia Script Runner tool that help develop scripts by including dependencies on a
+specific project. For example, the Jahia 6.6 engine sub-project has a dependency on Jahia 6.6's core Maven project,
+making it easier to use code completion when writing scripts or helper classes that match the correct Jahia version.
+
+Engines also contain built-in scripts for a specific version of an application. You can use the -l command line
+parameter to list the available built-in scripts for a specific version.
+
+Upon startup, the Jahia Script Runner will try to resolve the engineName and engineVersion to be used by using the
+versionDetection properties. By default for Jahia it will look in the WEB-INF/lib/jahia-impl-*.jar MANIFEST attributes
+to resolve the version of Jahia that is installed. It will then look for a script runner embedded JAR with a name
+that matches the following pattern :
+
+    libs/jahia-scriptrunner-engines-ENGINE_NAME-ENGINE_VERSION-SCRIPT_RUNNER_VERSION.jar
+
+Note that the version resolution is smart enough to look up version numbers. So if the product version is 6.6.2.1 it
+will first look for an engine version with 6.6.2.1, then try 6.6.2, then 6.6 and finally 6. If none could be found it
+will use the default engine version version property value.
+
+If you want to support another version of Jahia, or provide a built-in engine for another application, you can simply
+define a new engine sub-project that will be matched at execution time using this resolution mechanism.

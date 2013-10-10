@@ -448,7 +448,11 @@ public class ScriptRunner {
             File[] matchingFiles = getMatchingFiles(classPathPart);
             for (File matchingFile : matchingFiles) {
                 try {
-                    classLoaderURLs.add(matchingFile.toURI().toURL());
+                    if (matchingFile.exists()) {
+                        classLoaderURLs.add(matchingFile.toURI().toURL());
+                    } else {
+                        logger.warn("Class path location " + matchingFile + " does not exist, ignoring it !");
+                    }
                 } catch (MalformedURLException e) {
                     logger.error("Error transforming file to URL " + e);
                 }
