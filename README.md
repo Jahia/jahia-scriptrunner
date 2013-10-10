@@ -54,14 +54,17 @@ with:
 How it works
 ------------
 
-The utility will first try to locate the Jahia installation using the specified directory or using
-the current directory, it will setup a classloader with all the jars from WEB-INF/lib and WEB-INF/classes
-from the Jahia installation.
+The tool will first try to load a configuration properties file either specified as a command line parameter (using
+the -c parameter) or try to find a file called scriptRunner.properties in the current work property. If none could
+be found it will use a built-in scriptRunner.properties that defaults all settings to work with a deployed Jahia
+server installation.
+
+Once the properties are loaded, it will use them to setup a class loader in which to execute the script. The classPath
+property is used to specify the locations and JARs to include in the classloader.
 
 From this classloader it will load the main core of the utility that will then load the database
-configuration from the META-INF/context.xml file (so for the moment only Tomcat installations are
-supported) and create a connection to the database. It is also possible to configure the connection to
-the database using a properties file (see the Alternate database configuration section below).
+configuration from the Tomcat-specific META-INF/context.xml file or from a manually specified JDBC configuration and
+create a connection to the database (see the Alternate database configuration section below).
 
 Once all this is done it will then load and execute the Groovy script specified on the command line,
 passing it the following bound variables :
@@ -77,7 +80,7 @@ passing it the following bound variables :
     classLoader - the ClassLoader used to load all the Jahia JARs and classes
 
     scriptOptions - a Properties object with all the options passed on the command line using the -X
-    parameter
+    parameter or coming from the scriptOptions property in the configuration file
 
 How to use it
 -------------
@@ -85,15 +88,16 @@ How to use it
 Command line format:
 
     usage: jahia-scriptrunner [options] script_to_launch
-     -d,--installationDirectory <dir>     Jahia installation directory
+     -c,--configFile <file>               The configuration file to use to
+                                          setup the Jahia script runner
+     -d,--baseDirectory <dir>             Target base directory
      -h,--help                            Prints this help screen
      -l,--listScripts                     Outputs the list of built-in
                                           available scripts for this Jahia
                                           version
-     -v,--jahiaVersion <version>          Overrides the automatic Jahia
-                                          version detection and specify a
-                                          version using this command line
-                                          option
+     -v,--targetVersion <version>         Overrides the automatic version
+                                          detection and specify a version
+                                          using this command line option
      -x,--scriptOptions <scriptOptions>   A comma separated list of key=value
                                           options to pass to the script
 
@@ -101,31 +105,48 @@ Here a sample command line we will describe :
 
     ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT -x dumpXml=true dumpJCRFileSystem.groovy
 
-The "-d" option allows you to specify in which directory it must look for all the librairies, classes and
- database configuration to load. The "-x" options allows to specify a comma separated list of key=value
+The "-d" option allows you to specify in the base directory it will use to resolve all other paths specified in the
+configuration file. The "-x" options allows to specify a comma separated list of key=value
  pairs that will be passed to the script as a Properties object and that may be used to modify the
  behavior of the script. The third main argument is the Groovy script to launch within the
- context of the setup classloader. The given script will dump the contents of the jr_fsg_fsentry table,
- a Jackrabbit table that contains BLOBs which themselves are file contents such as the serialized
- namespace mapping and indexes, or the custom nodetypes XML descriptor. The -x dumpXML=true flag is used
- to specify that we want to dump the XML file, by default XML files are not dumped.
+ context of the setup classloader. The given script will dump the contents of the Jackrabbit repository file system
+ which includes files such as the serialized namespace mapping and indexes, or the custom nodetypes XML descriptor.
+ The -x dumpXML=true flag is used to specify that we want to dump the XML file, by default XML files are not dumped.
+ This script is really interesting in the case of a DatabaseFileSystem configuration, since in that case the contents
+ of the files are serialized within BLOBS in the database, making their access difficult without a tool such as this
+ one.
 
 Alternate database configuration
 --------------------------------
 
 By default the tool will try to retrieve the database configuration from Jahia's META-INF/context.xml, but in some
-cases this might not work because either the file was not configured or it is not available. To handle cases like these,
-it is possible to provide a database configuration file called databaseConfiguration.properties that needs to be in the
-same directory as the jahia-scriptrunner and that must have content that looks like this :
+cases this might not work because either the file was not configured or it is not available as in the case of another
+Jackrabbit-based application . To handle cases like these,
+it is possible to provide a database configuration in a custom Script Runner configuration that may either be specifed
+on the command line using a -c parameter or simply named scriptRunner.properties and located in the current work
+directory. The contents should at a minimum look like this :
 
-    driverClassName=com.mysql.jdbc.Driver
-    connectionURL=jdbc:mysql://localhost/jahia-6.6?useUnicode=true&characterEncoding=UTF-8&useServerPrepStmts=false
-    userName=jahia
-    password=jahia
-    schema=mysql
+    # The dbConfigurationSource property points to a Tomcat-specific context.xml descriptor since this is where Jahia
+    # installations store the database configuration, even when deployed on non-Tomcat application servers such as
+    # WebSphere. If you prefer to specify the database configuration manually, make sure this setting is empty as it will
+    # always take precedence over the manual settings below.
+    dbConfigurationSource=
+    # The dbDerbySystemHome setting is used to initialize the derby.system.home property if it was not specified directly
+    # on the JVM start command line (usually not the case with the default shell scripts). This setting is only used if
+    # the script runner detects a "derby" sub-string in the database connection URL (either from the dbConfigurationSource
+    # Tomcat descriptor of the dbUrl setting below)
+    dbDerbySystemHome=${baseDirectory}/WEB-INF/var/dbdata
+    # The following properties make it possible to setup a manual JDBC connection to the database, useful if you cannot use
+    # the Tomcat-specific driver. Make sure you blank the dbConfigurationSource setting as it will otherwise take
+    # precedence.
+    dbDriverClassName=com.mysql.jdbc.Driver
+    dbUrl=jdbc:mysql://localhost/jahia-6.6?useUnicode=true&characterEncoding=UTF-8&useServerPrepStmts=false
+    dbUserName=jahia
+    dbPassword=jahia
+    dbDatabaseType=mysql
 
-The schema is the name of the databaseType that is configured in the WEB-INF/etc/repository/jackrabbit/repository.xml
-in the following section:
+The schema is the name of the databaseType that is configured in the Jackrabbit repository.xml configuration file
+in the following section (located at WEB-INF/etc/repository/jackrabbit/repository.xml in Jahia installations) :
 
       <DataSources>
         <DataSource name="jahiaDS">
@@ -135,15 +156,13 @@ in the following section:
         </DataSource>
       </DataSources>
 
-Also, if you need to provide another database driver version or JAR, you will need to modify the shell scripts to add
-a classpath JVM option to point to your database driver JAR.
+Also, if you need to provide another database driver version or JAR, you will need to modify the classPath property to
+include the driver's JAR path:
 
-Here is an example of using the tool with a custom driver JAR :
-
-    java -classpath mysql-connector-java-5.1.26.jar:target/jahia-scriptrunner-1.0-SNAPSHOT-with-deps.jar org.jahia.server.tools.scriptrunner.ScriptRunner -x scriptFile=/Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT/WEB-INF/var/db/sql/schema/mysql/jackrabbit-schema.sql -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-7.0.23/webapps/ROOT sqlExecute.groovy
-
-For practical reasons you might want to copy the jahia-scriptrunner.sh/.bat script and add your driver JARs to the
-classpath.
+    # The classPath setting is used to build a class loader in which the script will be executed. You might want to customize
+    # this setting if you are bringing your own database driver and want to automatically include it in the script class
+    # loader.
+    classPath=mysql-connector-java-5.1.26.jar,${baseDirectory}/WEB-INF/classes,${baseDirectory}/WEB-INF/lib/*.jar
 
 Examples
 --------
@@ -181,6 +200,81 @@ script parameter as in the following example :
 
 Be careful when using the script options to always put double-quotes around the statement and the separator char to make
 sure it doesn't get interpreted wrong.
+
+Settings
+--------
+
+The tool will first try to load a configuration properties file either specified as a command line parameter (using
+the -c parameter) or try to find a file called scriptRunner.properties in the current work property. If none could
+be found it will use a built-in scriptRunner.properties that defaults all settings to work with a deployed Jahia
+server installation.
+
+Here are the contents of the default scriptRunner.properties which includes documentation for all the most important
+properties:
+
+    # The baseDirectory is used to specify a base directory that will then be used for all runtime execution, mostly by
+    # using a property reference in the properties below. This is an optional parameter since by default it will have
+    # the value of the current work directory or the value specified using the -d command line parameter.
+    # baseDirectory=
+
+    # The scriptOptions property is used to pass options to the script being executed. The format is a comma-seperated list
+    # key=value pairs that will be converted to a Properties object passed to the executing script. It is also possible
+    # to specify script options directly from the command line using the -x parameter, and this is usually the most
+    # practical way of using them.
+    # scriptOptions=namespaceOperation=remove,namespace=test2:http://localhost/test2
+
+    # The engineName is used to resolve the engine to be used inside the script runner. The engine will be inserted in the
+    # class loader setup for script execution.
+    engineName=jahia
+    # The engineDisplayName is the name of the engine that will be used in user interface screen
+    engineDisplayName=Jahia
+    # The engineDefault version will be used if no engine version can be resolved. See the versionDetection settings for
+    # more details on how the version is resolved.
+    engineDefaultVersion=6.6
+
+    # The classPath setting is used to build a class loader in which the script will be executed. You might want to customize
+    # this setting if you are bringing your own database driver and want to automatically include it in the script class
+    # loader.
+    classPath=${baseDirectory}/WEB-INF/classes,${baseDirectory}/WEB-INF/lib/*.jar
+
+    # The tempDirectory is used to specify the temporary directory in which some built-in JARs will be copied to be able
+    # to add them to the script class loader, as it is unfortunately not possible to add direct references to embedded JARs
+    # in a class loader (see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4735639 for more details)
+    tempDirectory=${user.home}/.scriptrunner/temp
+
+    # The versionDetectionJar setting is used to specify the JAR in which the version will be resolved using the MANIFEST
+    # entries. The versionDetectionVersionAttributeName and versionDetectionBuildAttributeName are used to specify the
+    # name of the attributes in the MANIFEST that will contain the version and build number information.
+    versionDetectionJar=${baseDirectory}/WEB-INF/lib/jahia-impl-*.jar
+    versionDetectionVersionAttributeName=Implementation-Version
+    versionDetectionBuildAttributeName=Implementation-Build
+
+    # The following Jackrabbit properties are used to setup the JackrabbitHelper class and are rather self-speaking. The
+    # consistency check and fix boolean will indicate whether consistency checks and fixes should be run when initializing
+    # access to the repository content.
+    jackrabbitConfigFile=${baseDirectory}/WEB-INF/etc/repository/jackrabbit/repository.xml
+    jackrabbitHomeDirectory=${baseDirectory}/WEB-INF/var/repository
+    jackrabbitConsistencyCheck=false
+    jackrabbitConsistencyFix=false
+
+    # The dbConfigurationSource property points to a Tomcat-specific context.xml descriptor since this is where Jahia
+    # installations store the database configuration, even when deployed on non-Tomcat application servers such as
+    # WebSphere. If you prefer to specify the database configuration manually, make sure this setting is empty as it will
+    # always take precedence over the manual settings below.
+    dbConfigurationSource=${baseDirectory}/META-INF/context.xml
+    # The dbDerbySystemHome setting is used to initialize the derby.system.home property if it was not specified directly
+    # on the JVM start command line (usually not the case with the default shell scripts). This setting is only used if
+    # the script runner detects a "derby" sub-string in the database connection URL (either from the dbConfigurationSource
+    # Tomcat descriptor of the dbUrl setting below)
+    dbDerbySystemHome=${baseDirectory}/WEB-INF/var/dbdata
+    # The following properties make it possible to setup a manual JDBC connection to the database, useful if you cannot use
+    # the Tomcat-specific driver. Make sure you blank the dbConfigurationSource setting as it will otherwise take
+    # precedence.
+    # dbDriverClassName=
+    # dbUrl=
+    # dbUserName=
+    # dbPassword=
+    # dbDatabaseType=
 
 A script in detail
 ------------------
@@ -231,3 +325,6 @@ persistence manager instances.
         }
         logger.info("Loaded " + count + " node states");
     }
+
+As you can see the code is quite straight-forward and it should be relatively easy to expand on it to perform other
+integrity checks or even perform modifications on the node states.

@@ -45,8 +45,8 @@ public class ScriptRunner {
 
         Option targetDirectory = OptionBuilder.withArgName("dir")
                 .hasArg()
-                .withDescription("Target directory")
-                .withLongOpt("targetDirectory")
+                .withDescription("Target base directory")
+                .withLongOpt("baseDirectory")
                 .create("d");
 
         Option scriptOptions = OptionBuilder.withArgName("scriptOptions")
