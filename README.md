@@ -1,8 +1,8 @@
 jahia-scriptrunner
 ==================
 
-A small command-line utility to perform database or other low-level modifications without launching Jahia or
-other Jackrabbit-based application.
+A small command-line utility to execute scripts to perform database or other low-level modifications without
+launching Jahia or other Jackrabbit-based application.
 
 Why this tool ?
 ---------------
@@ -13,15 +13,16 @@ include :
 - an incomplete namespace registry (possibly due to some invalid deployments, no longer possible
 with recent version of Jackrabbit or Jahia)
 - problems with database blobs than cannot be corrected through simple SQL queries
-- other database issues such as tables that were not properly purged after a re-install because DROP TABLE permissions
-were not given to the database user
+- problems with JCR content integrity that may prevent proper indexing, which will also prevent proper repository
+initialization
+- other database issues related or not to Jackrabbit tables.
 
 This tool is really good for all the problems that may involve serialized Java classes stored in
 BLOBs since in theory it can load and modify these blobs using custom scripts. Since it uses a
-class loader that gives you access to all the Jahia libraries and classes from the installed
+class loader that gives you access to all libraries and classes from the installed
 product, the possibilities are endless as to what you may do (start a part of the system, re-use
 model classes, etc...). It can also be used to easily execute SQL statements against the database
-using the configuration already setup in the Jahia server installation.
+using the configuration already setup in target product (such as a Jahia server installation)
 
 Features
 --------
