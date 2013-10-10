@@ -193,10 +193,11 @@ In the following example we show an example of how to execute an SQL query on th
 
     ./jahia-scriptrunner.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
 
-If you prefer to use an SQL script file to execute many statements at once, you can do so by using the scriptFile
-script parameter as in the following example :
 
-    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-6.0.20/webapps/ROOT -x scriptFile=/Users/loom/java/deployments/jahia-6.6/apache-tomcat-6.0.20/webapps/ROOT/WEB-INF/var/db/sql/schema/mysql/jackrabbit-schema.sql sqlExecute.groovy
+If you prefer to use an SQL script files to execute many statements at once, you can do so by using the scriptFile
+script parameter as in the following example (note the usage of a wildcard to include all scripts in the directory) :
+
+    ./jahia-scriptrunner.sh -d /Users/loom/java/deployments/jahia-6.6/apache-tomcat-6.0.20/webapps/ROOT -x scriptFile=/Users/loom/java/deployments/jahia-6.6/apache-tomcat-6.0.20/webapps/ROOT/WEB-INF/var/db/sql/schema/mysql/*.sql sqlExecute.groovy
 
 Be careful when using the script options to always put double-quotes around the statement and the separator char to make
 sure it doesn't get interpreted wrong.
