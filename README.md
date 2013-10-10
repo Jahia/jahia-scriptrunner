@@ -2,7 +2,7 @@ jahia-scriptrunner
 ==================
 
 A small command-line utility to execute scripts to perform database or other low-level modifications without
-launching Jahia or other Jackrabbit-based application.
+launching Jahia or other Jackrabbit-based applications
 
 Why this tool ?
 ---------------
