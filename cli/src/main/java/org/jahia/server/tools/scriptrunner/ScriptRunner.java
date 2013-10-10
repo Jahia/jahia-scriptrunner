@@ -142,14 +142,14 @@ public class ScriptRunner {
             // we have to resort to extract the JARs to a temporary directory
             String projectVersion = getScriptRunnerVersion().toString();
             ClassLoader appClassLoader = ScriptRunner.class.getClassLoader();
-            URL scriptRunnerCommonEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-common-" + projectVersion + ".jar");
-            URL extractedScriptRunnerCommonEngineJar = extractToTemp(scriptRunnerCommonEngineJar).toURI().toURL();
-            classLoaderURLs.add(extractedScriptRunnerCommonEngineJar);
+            URL commonEngineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-common-" + projectVersion + ".jar");
+            URL extractedCommonEngineJarUrl = extractToTemp(commonEngineJarUrl).toURI().toURL();
+            classLoaderURLs.add(extractedCommonEngineJarUrl);
 
             // resolve the target engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
-            String targetVersion = configuration.getTargetDefaultVersion();
+            String engineVersion = configuration.getEngineDefaultVersion();
             if (line.hasOption("v")) {
-                targetVersion = line.getOptionValue("v");
+                engineVersion = line.getOptionValue("v");
             } else {
                 Version jahiaImplementationVersion = null;
                 File[] versionMatchingFiles = getMatchingFiles(configuration.getVersionDetectionJar());
@@ -162,31 +162,31 @@ public class ScriptRunner {
                     Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
                     String implementationVersion = mainAttributes.getValue(configuration.getVersionDetectionVersionAttributeName());
                     jahiaImplementationVersion = new Version(implementationVersion);
-                    targetVersion = implementationVersion;
+                    engineVersion = implementationVersion;
                     String implementationBuild = mainAttributes.getValue(configuration.getVersionDetectionBuildAttributeName());
-                    logger.info("Detected "+configuration.getTargetDisplayName()+" v" + jahiaImplementationVersion + " build number " + implementationBuild);
+                    logger.info("Detected "+configuration.getEngineDisplayName()+" v" + jahiaImplementationVersion + " build number " + implementationBuild);
                 }
             }
-            URL scriptRunnerTargetEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getTargetName()+"-" + targetVersion + "-" + projectVersion + ".jar");
-            while (scriptRunnerTargetEngineJar == null && targetVersion.length() > 0) {
-                int lastDotPos = targetVersion.lastIndexOf(".");
+            URL engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
+            while (engineJarUrl == null && engineVersion.length() > 0) {
+                int lastDotPos = engineVersion.lastIndexOf(".");
                 if (lastDotPos > -1) {
-                    targetVersion = targetVersion.substring(0, lastDotPos);
-                    scriptRunnerTargetEngineJar = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getTargetName()+"-" + targetVersion + "-" + projectVersion + ".jar");
+                    engineVersion = engineVersion.substring(0, lastDotPos);
+                    engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
                 } else {
-                    targetVersion = "";
+                    engineVersion = "";
                 }
             }
-            if (targetVersion.length() > 0) {
-                logger.info("Using script engine v" + targetVersion);
+            if (engineVersion.length() > 0) {
+                logger.info("Using script engine v" + engineVersion);
             } else {
                 logger.error("Couldn't find any engine for the specified target version, aborting !");
                 return;
             }
-            URL extractedScriptRunnerJahiaEngineJar = extractToTemp(scriptRunnerTargetEngineJar).toURI().toURL();
-            classLoaderURLs.add(extractedScriptRunnerJahiaEngineJar);
+            URL extractedEngineJarUrl = extractToTemp(engineJarUrl).toURI().toURL();
+            classLoaderURLs.add(extractedEngineJarUrl);
 
-            classLoaderURLs.addAll(getTargetClassLoaderURLs(configuration.getTargetClassPath()));
+            classLoaderURLs.addAll(getTargetClassLoaderURLs(configuration.getClassPath()));
 
             if (line.hasOption("x")) {
                 String scriptOptionList = line.getOptionValue("x");
@@ -304,6 +304,18 @@ public class ScriptRunner {
 
     public static ScriptRunnerConfiguration getConfiguration(String configFileLocation, String baseDirectory) {
         ScriptRunnerConfiguration configuration = new ScriptRunnerConfiguration();
+        Properties defaultConfigurationProperties = new Properties(System.getProperties());
+        InputStream defaultConfigFileInputStream = ScriptRunner.class.getClassLoader().getResourceAsStream("scriptRunner.properties");
+        try {
+            defaultConfigurationProperties.load(defaultConfigFileInputStream);
+        } catch (IOException e) {
+            logger.error("Error loading default built-in properties", e);
+        } finally {
+            IOUtils.closeQuietly(defaultConfigFileInputStream);
+        }
+
+        applyProperties(configuration, defaultConfigurationProperties, baseDirectory);
+
         File scriptConfigFile = null;
         if (configFileLocation != null) {
             scriptConfigFile = new File(configFileLocation);
@@ -317,36 +329,45 @@ public class ScriptRunner {
                 scriptConfigFile = null;
             }
         }
+        Properties configurationProperties = new Properties(defaultConfigurationProperties);
         InputStream configFileInputStream = null;
-        try {
-            if (scriptConfigFile != null) {
+        if (scriptConfigFile != null) {
+            try {
                 configFileInputStream = new FileInputStream(scriptConfigFile);
-            } else {
-                configFileInputStream = ScriptRunner.class.getClassLoader().getResourceAsStream("scriptRunner.properties");
+                configurationProperties.load(configFileInputStream);
+            } catch (FileNotFoundException e) {
+                logger.error("Error loading properties from " + scriptConfigFile, e);
+            } catch (IOException e) {
+                logger.error("Error loading properties from " + scriptConfigFile, e);
+            } finally {
+                IOUtils.closeQuietly(configFileInputStream);
             }
-            Properties configurationProperties = new Properties(System.getProperties());
-            configurationProperties.load(configFileInputStream);
-            if (baseDirectory != null) {
-                configurationProperties.setProperty("baseDirectory", baseDirectory);
-            } else {
-                if (configurationProperties.getProperty("baseDirectory") == null) {
-                    configurationProperties.setProperty("baseDirectory", System.getProperty("user.dir"));
-                }
-            }
-            resolveProperties(configurationProperties);
 
-            BeanUtils.populate(configuration, configurationProperties);
-        } catch (IOException ioe) {
-            logger.error("Error reading configuration", ioe);
-        } catch (InvocationTargetException e) {
-            logger.error("Error mapping configuration to bean", e);
-        } catch (IllegalAccessException e) {
-            logger.error("Error mapping configuration to bean", e);
-        } finally {
-            IOUtils.closeQuietly(configFileInputStream);
         }
+        applyProperties(configuration, configurationProperties, baseDirectory);
+
         return configuration;
     }
+
+    private static void applyProperties(ScriptRunnerConfiguration configuration, Properties configurationProperties, String baseDirectory) {
+        if (baseDirectory != null) {
+            configurationProperties.setProperty("baseDirectory", baseDirectory);
+        } else {
+            if (configurationProperties.getProperty("baseDirectory") == null) {
+                configurationProperties.setProperty("baseDirectory", System.getProperty("user.dir"));
+            }
+        }
+        resolveProperties(configurationProperties);
+
+        try {
+            BeanUtils.populate(configuration, configurationProperties);
+        } catch (IllegalAccessException e) {
+            logger.error("Error applying loaded properties to configuration bean", e);
+        } catch (InvocationTargetException e) {
+            logger.error("Error applying loaded properties to configuration bean", e);
+        }
+    }
+
 
     private static void resolveProperties(Properties configurationProperties) {
         for (String propertyName : configurationProperties.stringPropertyNames()) {

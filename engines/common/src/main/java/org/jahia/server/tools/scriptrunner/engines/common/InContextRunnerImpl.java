@@ -1,6 +1,5 @@
 package org.jahia.server.tools.scriptrunner.engines.common;
 
-import org.apache.commons.beanutils.BeanUtils;
 import org.jahia.server.tools.scriptrunner.common.InContextRunner;
 import org.jahia.server.tools.scriptrunner.common.ScriptRunnerConfiguration;
 import org.jdom.Element;
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.script.*;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -75,14 +73,14 @@ public class InContextRunnerImpl implements InContextRunner {
     }
 
     public void loadDatabaseConfiguration() {
-        File targetDBConfigurationSource = new File(scriptRunnerConfiguration.getTargetDBConfigurationSource());
+        File targetDBConfigurationSource = new File(scriptRunnerConfiguration.getDbConfigurationSource());
         if (targetDBConfigurationSource.exists()) {
             SAXBuilder saxBuilder = new SAXBuilder();
             saxBuilder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd",
                     false);
             FileReader fileReader = null;
             try {
-                fileReader = new FileReader(new File(scriptRunnerConfiguration.getTargetDBConfigurationSource()));
+                fileReader = new FileReader(new File(scriptRunnerConfiguration.getDbConfigurationSource()));
                 org.jdom.Document jdomDocument = saxBuilder.build(fileReader);
                 Element root = jdomDocument.getRootElement();
 
@@ -110,7 +108,7 @@ public class InContextRunnerImpl implements InContextRunner {
         }
 
         if (System.getProperty("derby.system.home") == null && scriptRunnerConfiguration.getDbUrl().toLowerCase().contains("derby")) {
-            System.setProperty("derby.system.home", new File(scriptRunnerConfiguration.getTargetDerbySystemHome()).getAbsolutePath());
+            System.setProperty("derby.system.home", new File(scriptRunnerConfiguration.getDbDerbySystemHome()).getAbsolutePath());
             logger.info("Setting system property derby.system.home to value:" + System.getProperty("derby.system.home"));
             logger.info("If you need to initialize it to a different location please specify the value on the JVM command line with a -Dderby.system.home=PATH parameter.");
         }

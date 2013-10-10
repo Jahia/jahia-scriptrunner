@@ -6,12 +6,10 @@ package org.jahia.server.tools.scriptrunner.common;
 public class ScriptRunnerConfiguration {
 
     String baseDirectory;
-    String targetName;
-    String targetDisplayName;
-    String targetClassPath;
-    String targetDefaultVersion;
-    String targetDBConfigurationSource;
-    String targetDerbySystemHome;
+    String engineName;
+    String engineDisplayName;
+    String classPath;
+    String engineDefaultVersion;
 
     String tempDirectory;
 
@@ -19,6 +17,8 @@ public class ScriptRunnerConfiguration {
     String versionDetectionVersionAttributeName;
     String versionDetectionBuildAttributeName;
 
+    String dbConfigurationSource;
+    String dbDerbySystemHome;
     String dbDriverClassName;
     String dbUrl;
     String dbUserName;
@@ -29,7 +29,6 @@ public class ScriptRunnerConfiguration {
 
     String jackrabbitConfigFile;
     String jackrabbitHomeDirectory;
-
     boolean jackrabbitConsistencyCheck;
     boolean jackrabbitConsistencyFix;
 
@@ -44,36 +43,36 @@ public class ScriptRunnerConfiguration {
         this.baseDirectory = baseDirectory;
     }
 
-    public String getTargetName() {
-        return targetName;
+    public String getEngineName() {
+        return engineName;
     }
 
-    public void setTargetName(String targetName) {
-        this.targetName = targetName;
+    public void setEngineName(String engineName) {
+        this.engineName = engineName;
     }
 
-    public String getTargetDisplayName() {
-        return targetDisplayName;
+    public String getEngineDisplayName() {
+        return engineDisplayName;
     }
 
-    public void setTargetDisplayName(String targetDisplayName) {
-        this.targetDisplayName = targetDisplayName;
+    public void setEngineDisplayName(String engineDisplayName) {
+        this.engineDisplayName = engineDisplayName;
     }
 
-    public String getTargetClassPath() {
-        return targetClassPath;
+    public String getClassPath() {
+        return classPath;
     }
 
-    public void setTargetClassPath(String targetClassPath) {
-        this.targetClassPath = targetClassPath;
+    public void setClassPath(String classPath) {
+        this.classPath = classPath;
     }
 
-    public String getTargetDefaultVersion() {
-        return targetDefaultVersion;
+    public String getEngineDefaultVersion() {
+        return engineDefaultVersion;
     }
 
-    public void setTargetDefaultVersion(String targetDefaultVersion) {
-        this.targetDefaultVersion = targetDefaultVersion;
+    public void setEngineDefaultVersion(String engineDefaultVersion) {
+        this.engineDefaultVersion = engineDefaultVersion;
     }
 
     public String getTempDirectory() {
@@ -148,20 +147,20 @@ public class ScriptRunnerConfiguration {
         this.dbDatabaseType = dbDatabaseType;
     }
 
-    public String getTargetDBConfigurationSource() {
-        return targetDBConfigurationSource;
+    public String getDbConfigurationSource() {
+        return dbConfigurationSource;
     }
 
-    public void setTargetDBConfigurationSource(String targetDBConfigurationSource) {
-        this.targetDBConfigurationSource = targetDBConfigurationSource;
+    public void setDbConfigurationSource(String dbConfigurationSource) {
+        this.dbConfigurationSource = dbConfigurationSource;
     }
 
-    public String getTargetDerbySystemHome() {
-        return targetDerbySystemHome;
+    public String getDbDerbySystemHome() {
+        return dbDerbySystemHome;
     }
 
-    public void setTargetDerbySystemHome(String targetDerbySystemHome) {
-        this.targetDerbySystemHome = targetDerbySystemHome;
+    public void setDbDerbySystemHome(String dbDerbySystemHome) {
+        this.dbDerbySystemHome = dbDerbySystemHome;
     }
 
     public String getScriptOptions() {
