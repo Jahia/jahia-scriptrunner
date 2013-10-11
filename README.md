@@ -31,7 +31,8 @@ The Jahia Script Runner has a lot of built-in features, which may be expanded ea
 with:
 * Full native integration with the configuration of Jahia servers, retrieve database connection and Jackrabbit
   configuration from the deployed installation.
-* Compatibility with other Jackrabbit-based applications by using standard Jackrabbit configuration files
+* Compatibility with other Jackrabbit-based applications by using standard Jackrabbit configuration files. Tested with
+  the Jackrabbit standalone distribution.
 * Compatibility with other JDBC applications by being able to specify the database configuration in the
   configuration file
 * Groovy scripting is supported out of the box, with the possibility to support any JSR-223 language simply by
