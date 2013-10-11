@@ -108,6 +108,9 @@ public class ScriptRunner {
             String baseDirectory = null;
             if (line.hasOption("d")) {
                 baseDirectory = line.getOptionValue("d");
+                if (baseDirectory.endsWith("/")) {
+                    baseDirectory = baseDirectory.substring(0, baseDirectory.length()-1);
+                }
             }
 
             ScriptRunnerConfiguration configuration = getConfiguration(configFileLocation, baseDirectory);

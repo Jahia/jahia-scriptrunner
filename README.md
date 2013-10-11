@@ -47,6 +47,9 @@ with:
 * Built-in script to perform language integrity checks on JCR contents node inside of a Jackrabbit persistence manager
   without needed to start the whole repository system. This is very useful if there is a problem with the Lucene indexes
   preventing a full startup of the repository.
+* Built-in script to access EHCache serialized data for a Jahia server installation. The provided script only starts
+  a CacheManager for Jahia's internal cache, not Hibernate's caches, but it is easy to improve the script to add a
+  second cache manager configuration.
 * Helper classes to provide a JDBC connection or Jackrabbit persistence manager instances to easily access these
   backends. You can use this to for example directly load node states from a Jackrabbit persistence manager and perform
   checks or even modify entries without starting the repository !
@@ -194,7 +197,6 @@ In the following example we show an example of how to execute an SQL query on th
 
     ./jahia-scriptrunner.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.1.6/tomcat/webapps/ROOT/ -x statement="select * from jahia_contenthistory",csvOutput=test.csv,csvSeparatorChar=";" sqlExecute.groovy
 
-
 If you prefer to use an SQL script files to execute many statements at once, you can do so by using the scriptFile
 script parameter as in the following example (note the usage of a wildcard to include all scripts in the directory) :
 
@@ -202,6 +204,15 @@ script parameter as in the following example (note the usage of a wildcard to in
 
 Be careful when using the script options to always put double-quotes around the statement and the separator char to make
 sure it doesn't get interpreted wrong.
+
+### Access EHCache serialized data
+
+We provide a built-in script that starts up the EHCache manager with Jahia's cache configuration and makes it possible
+to load the disk serialized data to perform statistics and any offline data analysis. By default the script calculates
+the largest object serialized size and output its. It also logs all the keys that have expired. Here is an example
+of launching this script:
+
+    ./jahia-scriptrunner.sh -d /Users/loom/java/packages/Ent-Jahia_xCM_v6.6.2.0-postgresql/tomcat/webapps/ROOT ehCacheTool.groovy
 
 Settings
 --------
