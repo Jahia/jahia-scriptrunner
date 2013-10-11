@@ -107,7 +107,9 @@ public class InContextRunnerImpl implements InContextRunner {
             }
         }
 
-        if (System.getProperty("derby.system.home") == null && scriptRunnerConfiguration.getDbUrl().toLowerCase().contains("derby")) {
+        if (System.getProperty("derby.system.home") == null &&
+                scriptRunnerConfiguration.getDbUrl() != null &&
+                scriptRunnerConfiguration.getDbUrl().toLowerCase().contains("derby")) {
             System.setProperty("derby.system.home", new File(scriptRunnerConfiguration.getDbDerbySystemHome()).getAbsolutePath());
             logger.info("Setting system property derby.system.home to value:" + System.getProperty("derby.system.home"));
             logger.info("If you need to initialize it to a different location please specify the value on the JVM command line with a -Dderby.system.home=PATH parameter.");
@@ -115,6 +117,11 @@ public class InContextRunnerImpl implements InContextRunner {
     };
 
     public void getJDBCConnection(ScriptRunnerConfiguration scriptRunnerConfiguration) {
+        if (scriptRunnerConfiguration.getDbDriverClassName() == null ||
+            scriptRunnerConfiguration.getDbDriverClassName().trim().length() == 0) {
+            logger.warn("No database driver class name specified, will not create database connection.");
+            return;
+        }
         try {
             Driver driver = (Driver) Class.forName(scriptRunnerConfiguration.getDbDriverClassName(), true, classLoader).newInstance();
             DriverManager.registerDriver(driver);

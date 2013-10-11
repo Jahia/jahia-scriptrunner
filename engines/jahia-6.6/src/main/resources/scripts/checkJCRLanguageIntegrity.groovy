@@ -18,7 +18,9 @@ checkLanguageIntegrity(defaultPM, jackrabbitHelper, logger);
 
 logger.info("Checking live workspace bundles...");
 IterablePersistenceManager livePM = (IterablePersistenceManager) jackrabbitHelper.getWorkspacePM("live");
-checkLanguageIntegrity(livePM, jackrabbitHelper, logger);
+if (livePM != null) {
+    checkLanguageIntegrity(livePM, jackrabbitHelper, logger);
+}
 
 logger.info("Checking versioning bundles...");
 IterablePersistenceManager versioningPM = (IterablePersistenceManager) jackrabbitHelper.getVersioningPM();

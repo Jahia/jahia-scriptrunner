@@ -353,3 +353,36 @@ will use the default engine version version property value.
 
 If you want to support another version of Jahia, or provide a built-in engine for another application, you can simply
 define a new engine sub-project that will be matched at execution time using this resolution mechanism.
+
+Using with Jackrabbit standalone
+--------------------------------
+
+This tool has also been tested against the Jackrabbit standalone distribution in version 2.2.13 (the same major version
+as the one supported in the Jahia 6.6 engine). Please be aware that since the engine uses low-level Jackrabbit
+implementation classes it is very tied to the major version of Jackrabbit, and for example the Jahia 6.6 engine will
+not work with Jackrabbit 2.4 or more recent. This is not a major problem since new engines may be added to the tool
+to support more versions, but right now on the Jahia 6.6 engine is available.
+
+Therefore we provide an example here using the Jackrabbit 2.2 standalone application using the built-in Jahia 6.6
+engine. We suppose that the application has been launched at least once and that the repository was properly initialized
+using the default settings.
+
+In order to setup the Script Runner to work with Jackrabbit 2.2.13 we will create a new scriptRunner.properties file
+that we will locate in the same directory as our Jahia Script Runner JAR and insert the following content :
+
+    classPath=${baseDirectory}/jackrabbit-standalone-2.2.13.jar,${baseDirectory}/jackrabbit-standalone-2.2.13.jar!WEB-INF/lib/*.jar
+    jackrabbitConfigFile=${baseDirectory}/jackrabbit/repository.xml
+    jackrabbitHomeDirectory=${baseDirectory}/jackrabbit
+
+Note that the class path uses a special syntax here since the Jackrabbit standalone packaging actually embeds it's
+dependencies inside a WEB-INF/lib directory inside the JAR. Upon execution of the Jahia Script Runner, it will extract
+these dependencies into the temporary directory since it is not possible to load classes from an embedded JAR due to
+JVM limitations.
+
+You can then launch the Jahia Script Runner by indicating the base directory for the jackrabbit-standalone-2.2.13.jar
+as in the following example:
+
+    ./jahia-scriptrunner.sh -d /Users/loom/Downloads checkJCRLanguageIntegrity.groovy
+
+This will load the configuration from the repository.xml file we specified in the scriptRunner.properties file and
+check the node states for JCR language integrity.

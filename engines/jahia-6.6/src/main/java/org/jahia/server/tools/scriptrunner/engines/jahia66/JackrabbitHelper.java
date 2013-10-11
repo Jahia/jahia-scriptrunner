@@ -74,22 +74,24 @@ public class JackrabbitHelper {
         this.consistencyFix = scriptRunnerConfiguration.isJackrabbitConsistencyFix();
         this.repositoryXmlRootElement = getRepositoryXmlRootElement();
         Element dataSourceElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource").selectSingleNode(repositoryXmlRootElement);
-        String dataSourceName = dataSourceElement.getAttributeValue("name");
-        DataSourceConfig dataSourceConfig = new DataSourceConfig();
-        Properties dataSourceProperties = new Properties();
-        dataSourceProperties.setProperty(DataSourceConfig.DRIVER, scriptRunnerConfiguration.getDbDriverClassName());
-        dataSourceProperties.setProperty(DataSourceConfig.URL, scriptRunnerConfiguration.getDbUrl());
-        dataSourceProperties.setProperty(DataSourceConfig.USER, scriptRunnerConfiguration.getDbUserName());
-        dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, scriptRunnerConfiguration.getDbPassword());
-        dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, scriptRunnerConfiguration.getDbDatabaseType());
-        dataSourceConfig.addDataSourceDefinition(dataSourceName, dataSourceProperties);
+        if (dataSourceElement != null) {
+            String dataSourceName = dataSourceElement.getAttributeValue("name");
+            DataSourceConfig dataSourceConfig = new DataSourceConfig();
+            Properties dataSourceProperties = new Properties();
+            dataSourceProperties.setProperty(DataSourceConfig.DRIVER, scriptRunnerConfiguration.getDbDriverClassName());
+            dataSourceProperties.setProperty(DataSourceConfig.URL, scriptRunnerConfiguration.getDbUrl());
+            dataSourceProperties.setProperty(DataSourceConfig.USER, scriptRunnerConfiguration.getDbUserName());
+            dataSourceProperties.setProperty(DataSourceConfig.PASSWORD, scriptRunnerConfiguration.getDbPassword());
+            dataSourceProperties.setProperty(DataSourceConfig.DB_TYPE, scriptRunnerConfiguration.getDbDatabaseType());
+            dataSourceConfig.addDataSourceDefinition(dataSourceName, dataSourceProperties);
+            connectionFactory.registerDataSources(dataSourceConfig);
+        }
         Element workspacesElement = (Element) XPath.newInstance("/Repository/Workspaces").selectSingleNode(repositoryXmlRootElement);
         jackrabbitProperties.setProperty("rep.home", jackrabbitHomeDir.getAbsolutePath());
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyCheck", Boolean.toString(consistencyCheck));
         jackrabbitProperties.setProperty("jahia.jackrabbit.consistencyFix", Boolean.toString(consistencyFix));
         workspacesRootPath = getRealValue(jackrabbitProperties, new Properties(), workspacesElement.getAttributeValue("rootPath"));
         workspacesRootFile = new File(workspacesRootPath);
-        connectionFactory.registerDataSources(dataSourceConfig);
         this.repositoryFileSystem = getFileSystem(repositoryXmlRootElement, "/Repository/FileSystem", jackrabbitProperties);
         this.dataStore = getDataStoreInstance(repositoryXmlRootElement, jackrabbitProperties);
         if (dataStore instanceof DatabaseAware) {
@@ -140,13 +142,18 @@ public class JackrabbitHelper {
         Element rootElement = getXmlRootElement(jackrabbitConfigFile);
         if (scriptRunnerConfiguration.getDbDatabaseType() == null) {
             Element databaseTypeElement = (Element) XPath.newInstance("/Repository/DataSources/DataSource/param[@name='databaseType']").selectSingleNode(rootElement);
-            scriptRunnerConfiguration.setDbDatabaseType(databaseTypeElement.getAttributeValue("value"));
+            if (databaseTypeElement != null) {
+                scriptRunnerConfiguration.setDbDatabaseType(databaseTypeElement.getAttributeValue("value"));
+            }
         }
         return rootElement;
     }
 
     private Element getWorkspaceXmlRootElement(String workspaceName) {
         File workspaceXmlConfigFile = new File(workspacesRootFile, workspaceName + File.separator + "workspace.xml");
+        if (!workspaceXmlConfigFile.exists()) {
+            return null;
+        }
         return getXmlRootElement(workspaceXmlConfigFile);
     }
 
@@ -292,6 +299,9 @@ public class JackrabbitHelper {
         workspaceProperties.setProperty("wsp.home", new File(workspacesRootFile, workspaceName).getAbsolutePath());
 
         Element workspaceXmlRootElement = getWorkspaceXmlRootElement(workspaceName);
+        if (workspaceXmlRootElement == null) {
+            return null;
+        }
 
         FileSystem workspaceFileSystem = getFileSystem(workspaceXmlRootElement, "/Workspace/FileSystem", workspaceProperties);
         PMContext livePMContext = new PMContext(jackrabbitHomeDir, workspaceFileSystem, rootNodeId, getNamespaceRegistry(), getNodeTypeRegistry(), dataStore);

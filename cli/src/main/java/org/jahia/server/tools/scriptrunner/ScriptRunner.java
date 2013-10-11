@@ -35,6 +35,7 @@ public class ScriptRunner {
     private static Version scriptRunnerVersion;
     private static String scriptRunnerBuildNumber;
     private static File tempDirectory;
+    private static List<File> tempFilesToDelete = new ArrayList<File>();
 
     public static Options buildOptions() {
 
@@ -153,7 +154,7 @@ public class ScriptRunner {
                 engineVersion = line.getOptionValue("v");
             } else {
                 Version jahiaImplementationVersion = null;
-                File[] versionMatchingFiles = Utils.getMatchingFiles(configuration.getVersionDetectionJar());
+                File[] versionMatchingFiles = Utils.getMatchingFiles(configuration.getVersionDetectionJar(), tempFilesToDelete, tempDirectory);
                 if (versionMatchingFiles != null && versionMatchingFiles.length > 0) {
                     if (versionMatchingFiles.length > 1) {
                         logger.warn("More than one JAR was matched by wildcard " + configuration.getVersionDetectionJar() + ", will only use first match !");
@@ -232,6 +233,11 @@ public class ScriptRunner {
                 logger.error("Couldn't resolve any script to run, aborting !");
             }
 
+            logger.info("Cleaning up...");
+            for (File tempFileToDelete : tempFilesToDelete) {
+                tempFileToDelete.delete();
+            }
+
         } catch (ParseException exp) {
             // oops, something went wrong
             logger.error("Parsing failed.  Reason: ", exp);
@@ -297,9 +303,10 @@ public class ScriptRunner {
         if (lastSlashPos > -1) {
             fileName = fileName.substring(lastSlashPos + 1);
         }
-        File destFile = new File(tempDirectory + File.separator + fileName);
+        File destFile = new File(tempDirectory, fileName);
         logger.info("Extracting resource " + resourceURL + " to " + destFile);
         FileUtils.copyInputStreamToFile(resourceURL.openStream(), destFile);
+        tempFilesToDelete.add(destFile);
         return destFile;
     }
 
@@ -334,6 +341,7 @@ public class ScriptRunner {
         InputStream configFileInputStream = null;
         if (scriptConfigFile != null) {
             try {
+                logger.info("Using configuration from file " + scriptConfigFile);
                 configFileInputStream = new FileInputStream(scriptConfigFile);
                 configurationProperties.load(configFileInputStream);
             } catch (FileNotFoundException e) {
@@ -410,7 +418,7 @@ public class ScriptRunner {
         List<URL> classLoaderURLs = new ArrayList<URL>();
 
         for (String classPathPart : classPathParts) {
-            File[] matchingFiles = Utils.getMatchingFiles(classPathPart);
+            File[] matchingFiles = Utils.getMatchingFiles(classPathPart, tempFilesToDelete, tempDirectory);
             for (File matchingFile : matchingFiles) {
                 try {
                     if (matchingFile.exists()) {
