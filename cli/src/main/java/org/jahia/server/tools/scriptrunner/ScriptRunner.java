@@ -34,8 +34,13 @@ public class ScriptRunner {
     private static final Logger logger = LoggerFactory.getLogger(ScriptRunner.class);
     private static Version scriptRunnerVersion;
     private static String scriptRunnerBuildNumber;
-    private static File tempDirectory;
-    private static List<File> tempFilesToDelete = new ArrayList<File>();
+    private File tempDirectory;
+    private List<File> tempFilesToDelete = new ArrayList<File>();
+    private static ScriptRunner instance = new ScriptRunner();
+
+    public static ScriptRunner getInstance() {
+        return instance;
+    }
 
     public static Options buildOptions() {
 
@@ -113,17 +118,6 @@ public class ScriptRunner {
                 }
             }
 
-            ScriptRunnerConfiguration configuration = getConfiguration(configFileLocation, baseDirectory);
-
-            tempDirectory = new File(configuration.getTempDirectory());
-            tempDirectory.mkdirs();
-
-            File baseDirectoryFile = new File(configuration.getBaseDirectory());
-            if (!baseDirectoryFile.exists() && !baseDirectoryFile.isDirectory()) {
-                logger.error("Invalid target directory " + baseDirectoryFile.getAbsolutePath());
-                return;
-            }
-
             String command = null;
             File scriptFile = null;
             if (lineArgs.length >= 1) {
@@ -140,106 +134,22 @@ public class ScriptRunner {
                 }
             }
 
-            List<URL> classLoaderURLs = new ArrayList<URL>();
-
-            // first we look for the Script Runner's jars
-            // here because of http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4735639 that is still not fixed (!)
-            // we have to resort to extract the JARs to a temporary directory
-            String projectVersion = getScriptRunnerVersion().toString();
-            ClassLoader appClassLoader = ScriptRunner.class.getClassLoader();
-            URL commonEngineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-common-" + projectVersion + ".jar");
-            URL extractedCommonEngineJarUrl = extractToTemp(commonEngineJarUrl).toURI().toURL();
-            classLoaderURLs.add(extractedCommonEngineJarUrl);
-
-            // resolve the target engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
-            String engineVersion = configuration.getEngineDefaultVersion();
-            if (line.hasOption("v")) {
-                engineVersion = line.getOptionValue("v");
-            } else {
-                Version jahiaImplementationVersion = null;
-                File[] versionMatchingFiles = Utils.getMatchingFiles(configuration.getVersionDetectionJar(), tempFilesToDelete, tempDirectory);
-                if (versionMatchingFiles != null && versionMatchingFiles.length > 0) {
-                    if (versionMatchingFiles.length > 1) {
-                        logger.warn("More than one JAR was matched by wildcard " + configuration.getVersionDetectionJar() + ", will only use first match !");
-                    }
-                    File file = versionMatchingFiles[0];
-                    JarFile jarFile = new JarFile(file);
-                    Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
-                    String implementationVersion = mainAttributes.getValue(configuration.getVersionDetectionVersionAttributeName());
-                    jahiaImplementationVersion = new Version(implementationVersion);
-                    engineVersion = implementationVersion;
-                    String implementationBuild = mainAttributes.getValue(configuration.getVersionDetectionBuildAttributeName());
-                    logger.info("Detected "+configuration.getEngineDisplayName()+" v" + jahiaImplementationVersion + " build number " + implementationBuild);
-                }
-            }
-            URL engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
-            while (engineJarUrl == null && engineVersion.length() > 0) {
-                int lastDotPos = engineVersion.lastIndexOf(".");
-                if (lastDotPos > -1) {
-                    engineVersion = engineVersion.substring(0, lastDotPos);
-                    engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
-                } else {
-                    engineVersion = "";
-                }
-            }
-            if (engineVersion.length() > 0) {
-                logger.info("Using script engine v" + engineVersion);
-            } else {
-                logger.error("Couldn't find any engine for the specified target version, aborting !");
-                return;
-            }
-            URL extractedEngineJarUrl = extractToTemp(engineJarUrl).toURI().toURL();
-            classLoaderURLs.add(extractedEngineJarUrl);
-
-            classLoaderURLs.addAll(getTargetClassLoaderURLs(configuration.getClassPath()));
-
+            String scriptOptionList = null;
             if (line.hasOption("x")) {
-                String scriptOptionList = line.getOptionValue("x");
-                configuration.setScriptOptions(scriptOptionList);
+                scriptOptionList = line.getOptionValue("x");
             }
 
-            URLClassLoader urlClassLoader = new URLClassLoader(classLoaderURLs.toArray(new URL[classLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
+            String specificEngineVersion = null;
+            if (line.hasOption("v")) {
+                specificEngineVersion = line.getOptionValue("v");
+            }
+
+            boolean listBuiltInScripts = false;
             if (line.hasOption("l")) {
-                InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/availableScripts.properties");
-                if (scriptClassLoaderStream == null) {
-                    logger.error("Couldn't find a built-in script list !");
-                }
-                Properties availableScripts = new Properties();
-                availableScripts.load(scriptClassLoaderStream);
-                logger.info("Available built-in scripts:");
-                for (String availableScriptName : availableScripts.stringPropertyNames()) {
-                    logger.info("    " + availableScriptName + " : " + availableScripts.getProperty(availableScriptName));
-                }
-                return;
-            }
-            String scriptName = null;
-            InputStream scriptStream = null;
-            if (scriptFile != null && !scriptFile.exists()) {
-                InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/" + command);
-                if (scriptClassLoaderStream == null) {
-                    logger.error("Couldn't find a built-in script named" + command + ", aborting !");
-                    return;
-                }
-                scriptName = command;
-                scriptStream = scriptClassLoaderStream;
-            } else {
-                if (scriptFile != null) {
-                    scriptName = scriptFile.getName();
-                    scriptStream = new FileInputStream(scriptFile);
-                }
-            }
-            if (scriptStream != null) {
-                Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.scriptrunner.engines.common.InContextRunnerImpl");
-                InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
-                inContextRunner.run(configuration, scriptName, scriptStream, urlClassLoader);
-            } else {
-                logger.error("Couldn't resolve any script to run, aborting !");
+                listBuiltInScripts = true;
             }
 
-            logger.info("Cleaning up...");
-            for (File tempFileToDelete : tempFilesToDelete) {
-                tempFileToDelete.delete();
-            }
+            getInstance().executeScript(specificEngineVersion, configFileLocation, baseDirectory, command, scriptFile, scriptOptionList, listBuiltInScripts);
 
         } catch (ParseException exp) {
             // oops, something went wrong
@@ -256,6 +166,120 @@ public class ScriptRunner {
             logger.error("Error", e);
         }
 
+    }
+
+    private boolean executeScript(final String specificEngineVersion, final String configFileLocation, final String baseDirectory, final String command, final File scriptFile, final String scriptOptionList, boolean listBuiltInScripts) throws Exception {
+
+        ScriptRunnerConfiguration configuration = getConfiguration(configFileLocation, baseDirectory);
+        if (scriptOptionList != null) {
+            configuration.setScriptOptions(scriptOptionList);
+        }
+
+        tempDirectory = new File(configuration.getTempDirectory());
+        tempDirectory.mkdirs();
+
+        File baseDirectoryFile = new File(configuration.getBaseDirectory());
+        if (!baseDirectoryFile.exists() && !baseDirectoryFile.isDirectory()) {
+            logger.error("Invalid target directory " + baseDirectoryFile.getAbsolutePath());
+            return false;
+        }
+
+        List<URL> classLoaderURLs = new ArrayList<URL>();
+
+        // first we look for the Script Runner's jars
+        // here because of http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4735639 that is still not fixed (!)
+        // we have to resort to extract the JARs to a temporary directory
+        String projectVersion = getScriptRunnerVersion().toString();
+        ClassLoader appClassLoader = ScriptRunner.class.getClassLoader();
+        URL commonEngineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-common-" + projectVersion + ".jar");
+        URL extractedCommonEngineJarUrl = extractToTemp(commonEngineJarUrl).toURI().toURL();
+        classLoaderURLs.add(extractedCommonEngineJarUrl);
+
+        // resolve the target engine JAR, possibly resolving using intelligent resolving 6.6.1.1 -> 6.6.1 -> 6.6
+        String engineVersion = configuration.getEngineDefaultVersion();
+        if (specificEngineVersion != null) {
+            engineVersion = specificEngineVersion;
+        } else {
+            Version jahiaImplementationVersion = null;
+            File[] versionMatchingFiles = Utils.getMatchingFiles(configuration.getVersionDetectionJar(), tempFilesToDelete, tempDirectory);
+            if (versionMatchingFiles != null && versionMatchingFiles.length > 0) {
+                if (versionMatchingFiles.length > 1) {
+                    logger.warn("More than one JAR was matched by wildcard " + configuration.getVersionDetectionJar() + ", will only use first match !");
+                }
+                File file = versionMatchingFiles[0];
+                JarFile jarFile = new JarFile(file);
+                Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
+                String implementationVersion = mainAttributes.getValue(configuration.getVersionDetectionVersionAttributeName());
+                jahiaImplementationVersion = new Version(implementationVersion);
+                engineVersion = implementationVersion;
+                String implementationBuild = mainAttributes.getValue(configuration.getVersionDetectionBuildAttributeName());
+                logger.info("Detected "+configuration.getEngineDisplayName()+" v" + jahiaImplementationVersion + " build number " + implementationBuild);
+            }
+        }
+        URL engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
+        while (engineJarUrl == null && engineVersion.length() > 0) {
+            int lastDotPos = engineVersion.lastIndexOf(".");
+            if (lastDotPos > -1) {
+                engineVersion = engineVersion.substring(0, lastDotPos);
+                engineJarUrl = appClassLoader.getResource("libs/jahia-scriptrunner-engines-"+configuration.getEngineName()+"-" + engineVersion + "-" + projectVersion + ".jar");
+            } else {
+                engineVersion = "";
+            }
+        }
+        if (engineVersion.length() > 0) {
+            logger.info("Using script engine v" + engineVersion);
+        } else {
+            logger.error("Couldn't find any engine for the specified target version, aborting !");
+            return true;
+        }
+        URL extractedEngineJarUrl = extractToTemp(engineJarUrl).toURI().toURL();
+        classLoaderURLs.add(extractedEngineJarUrl);
+
+        classLoaderURLs.addAll(getTargetClassLoaderURLs(configuration.getClassPath()));
+
+        URLClassLoader urlClassLoader = new URLClassLoader(classLoaderURLs.toArray(new URL[classLoaderURLs.size()]), ScriptRunner.class.getClassLoader());
+        if (listBuiltInScripts) {
+            InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/availableScripts.properties");
+            if (scriptClassLoaderStream == null) {
+                logger.error("Couldn't find a built-in script list !");
+            }
+            Properties availableScripts = new Properties();
+            availableScripts.load(scriptClassLoaderStream);
+            logger.info("Available built-in scripts:");
+            for (String availableScriptName : availableScripts.stringPropertyNames()) {
+                logger.info("    " + availableScriptName + " : " + availableScripts.getProperty(availableScriptName));
+            }
+            return true;
+        }
+        String scriptName = null;
+        InputStream scriptStream = null;
+        if (scriptFile != null && !scriptFile.exists()) {
+            InputStream scriptClassLoaderStream = urlClassLoader.getResourceAsStream("scripts/" + command);
+            if (scriptClassLoaderStream == null) {
+                logger.error("Couldn't find a built-in script named" + command + ", aborting !");
+                return true;
+            }
+            scriptName = command;
+            scriptStream = scriptClassLoaderStream;
+        } else {
+            if (scriptFile != null) {
+                scriptName = scriptFile.getName();
+                scriptStream = new FileInputStream(scriptFile);
+            }
+        }
+        if (scriptStream != null) {
+            Class inContextRunnerClass = urlClassLoader.loadClass("org.jahia.server.tools.scriptrunner.engines.common.InContextRunnerImpl");
+            InContextRunner inContextRunner = (InContextRunner) inContextRunnerClass.newInstance();
+            inContextRunner.run(configuration, scriptName, scriptStream, urlClassLoader);
+        } else {
+            logger.error("Couldn't resolve any script to run, aborting !");
+        }
+
+        logger.info("Cleaning up...");
+        for (File tempFileToDelete : tempFilesToDelete) {
+            tempFileToDelete.delete();
+        }
+        return false;
     }
 
     public static void displayStartupBanner() throws Exception {
@@ -300,7 +324,7 @@ public class ScriptRunner {
         throw new Exception("Couldn't resolve ScriptRunner build number !");
     }
 
-    public static File extractToTemp(URL resourceURL) throws IOException {
+    public File extractToTemp(URL resourceURL) throws IOException {
         String fileName = resourceURL.getFile();
         int lastSlashPos = fileName.lastIndexOf("/");
         if (lastSlashPos > -1) {
@@ -416,7 +440,7 @@ public class ScriptRunner {
         return value.substring(markerStart+"${".length(), markerEnd);
     }
 
-    private static List<URL> getTargetClassLoaderURLs(String targetClassPath) {
+    private List<URL> getTargetClassLoaderURLs(String targetClassPath) {
         String[] classPathParts = targetClassPath.split(",");
         List<URL> classLoaderURLs = new ArrayList<URL>();
 
